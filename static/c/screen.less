@@ -1,0 +1,62 @@
+html {
+    height: 100%;
+}
+
+body {
+    background: url("/m/black_paper.png");
+    height: 96%;
+    padding: 0 1%;
+}
+
+div.frame {
+    background: url("/m/cork_1.png");
+    border-radius: 10pt;
+    height: 100%;
+}
+
+.layout {
+    margin: 1%;
+    width: 98%;
+    height: 98%;
+
+    td {
+        padding-left: 12pt;
+        vertical-align: top;
+        padding-top: 8pt;
+    }
+
+    td:first-child {
+        padding-left: 0;
+    }
+}
+
+#editor {
+    position: relative;
+    width: auto;
+    height: 100%;
+    background: #f8f8f8;
+}
+
+#repl {
+    height: 1px;
+    border-bottom-left-radius: 6pt;
+    border-bottom-right-radius: 6pt;
+    background: #f8f8f8;
+    padding: 6pt 12pt;
+    border-top: 2px groove white;
+}
+
+#editor, #repl {
+    font-family: "Ubuntu Mono";
+    font-size: 20px;
+}
+
+#view {
+    width: 50%;
+
+    iframe {
+        width: 100%;
+        height: 100%;
+        border: 1px inset white;
+    }
+}
