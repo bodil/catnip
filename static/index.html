@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/.  -->
 <html>
   <head>
     <meta charset="utf-8">
@@ -7,33 +10,61 @@
     <link rel="stylesheet/less" type="text/css" href="/bootstrap/less/bootstrap.less">
     <link rel="stylesheet/less" type="text/css" href="/c/screen.less">
     <script type="text/javascript" src="/j/less-1.3.0.min.js"></script>
+    <script type="text/javascript" src="/j/jquery-1.7.2.min.js"></script>
+    <script type="text/javascript" src="/j/jquery.caret.js"></script>
+    <script type="text/javascript" src="/j/jquery.scrollintoview.js"></script>
     <script type="text/javascript" src="/j/coffee-script.js"></script>
     <script type="text/javascript" src="/j/ace/ace.js"></script>
     <script type="text/javascript" src="/j/ace/theme-chrome.js"></script>
     <script type="text/javascript" src="/j/ace/mode-clojure.js"></script>
+    <script type="text/javascript" src="/j/caret.js"></script>
+    <script type="text/coffeescript" src="/j/keybindings.coffee"></script>
     <script type="text/coffeescript" src="/j/app.coffee"></script>
   </head>
   <body>
     <div class="frame">
-      <table class="layout">
-        <tbody>
-          <tr>
-            <td class="editor-cell">
-              <div id="editor">(ns ohai.fac)
+      <div class="left-pane">
+        <div id="editor">(ns ohai.fac)
 
 (defn fac [n]
   (if (> n 1) (* n (fac (dec n))) n))
 </div>
-            </td>
-            <td id="view" rowspan="2">
-              <iframe src="testframe.html"></iframe>
-            </td>
-          </tr>
-          <tr>
-            <td id="repl">&gt;&gt;&gt; REPL goes here</td>
-          </tr>
-        </tbody>
-      </table>
+        <div class="repl">
+          <div id="repl-display"></div>
+          <div class="repl-holder">
+            <table>
+              <tr>
+                <td id="repl-prompt">user</td>
+                <td class="input-cell"><input id="repl-input" type="text"></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="right-pane">
+        <div class="view-frame">
+          <iframe id="view" src="testframe.html"></iframe>
+        </div>
+      </div>
     </div>
+<!--       <table class="layout"> -->
+<!--         <tbody> -->
+<!--           <tr> -->
+<!--             <td class="editor-cell"> -->
+<!--               <div id="editor">(ns ohai.fac) -->
+
+<!-- (defn fac [n] -->
+<!--   (if (> n 1) (* n (fac (dec n))) n)) -->
+<!-- </div> -->
+<!--             </td> -->
+<!--             <td id="view" rowspan="2"> -->
+<!--               <iframe src="testframe.html"></iframe> -->
+<!--             </td> -->
+<!--           </tr> -->
+<!--           <tr> -->
+<!--             <td id="repl">&gt;&gt;&gt; REPL goes here</td> -->
+<!--           </tr> -->
+<!--         </tbody> -->
+<!--       </table> -->
   </body>
 </html>

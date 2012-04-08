@@ -8,6 +8,6 @@
                  [org.clojure/data.json "0.1.2"]
                  [org.webbitserver/webbit "0.4.6"]
                  [clojail "0.5.1"]
-                 [hiccup "1.0.0-RC1"]]
+                 [clojure-complete "0.2.1"]]
   :jvm-opts ["-Djava.security.policy=security.policy"]
   :main mizugorou.server)

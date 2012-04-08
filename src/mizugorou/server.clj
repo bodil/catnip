@@ -4,77 +4,85 @@
 
 (ns mizugorou.server
   (:require [clojure.data.json :as json]
-            [clojure.main :as main]
+            [clojure.repl :as repl]
             [clojure.pprint :as pprint]
             [clojure.contrib.string :as string]
-            [clojail.core :as clojail]
-            clojail.testers)
-  (:use clojure.test hiccup.core)
+            [complete.core :as complete])
+  (:use clojure.test)
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler StaticFileHandler]))
 
 (defn stream [s]
   (java.io.PushbackReader. (java.io.StringReader. s)))
 
-(defn sandbox []
-  (clojail/sandbox clojail.testers/secure-tester-without-def :timeout 1000))
-
 (with-test
   (defn ppr [el]
     (string/trim (with-out-str (pprint/pprint el))))
   (is (= "1337" (ppr 1337))))
 
-(with-test
-  (defn eval-sexp [sandbox sexp]
-    (let [writer (java.io.StringWriter.)]
-      (try
-        (let [result (ppr (sandbox sexp {#'*out* writer}))]
-          {:code (ppr sexp) :result result :out (str writer)})
-        (catch Exception e
-          {:code (ppr sexp) :error (.toString (main/repl-exception e))
-           :out (str writer)}))))
-  (is (= {:code "1337" :result "1337" :out ""} (eval-sexp (sandbox) 1337)))
-  (is (= {:code "(+ 2 2)" :result "4" :out ""} (eval-sexp (sandbox) '(+ 2 2))))
-  (is (= {:code "(println \"foo\")" :result "nil" :out "foo\n"}
-         (eval-sexp (sandbox) '(println "foo"))))
-  (is (string/substring? "No such namespace"
-                         ((eval-sexp (sandbox) '(nonexistent/flarp)) :error)))
-  (is (string/substring? "You tripped the alarm"
-                         ((eval-sexp (sandbox) '(eval '(+ 2 2))) :error))))
+(defn eval*
+  ([socket sexp]
+     (eval* socket sexp {}))
+  ([socket sexp bindings]
+     (with-bindings
+         (assoc bindings #'*ns* (.data socket "ns"))
+       (let [result (eval sexp)]
+         (.data socket "ns" *ns*)
+         result))))
 
-(with-test
-  (defn eval-stream [sandbox s]
-    (loop [sexp (read s false nil)
-           results []]
-      (if (not (nil? sexp))
-        (let [result (eval-sexp sandbox sexp)]
-          (if (result :error)
-            (conj results result)
-            (recur (read s false nil) (conj results result))))
-        results)))
-  (is (= '({:code "(+ 2 2)" :result "4" :out ""}
-           {:code "(- 3 2)" :result "1" :out ""}
-           {:code "(errorboom/flarp)" :out ""
-            :error "java.lang.RuntimeException: No such namespace: errorboom, compiling:(NO_SOURCE_PATH:0)"})
-         (eval-stream (sandbox)
-                      (stream "(+ 2 2) (- 3 2) (errorboom/flarp) (* 2 3)"))))
-  (is (= '({:code "1337" :result "1337" :out ""})
-         (eval-stream (sandbox) (stream "1337")))))
+(defmacro with-err-str [& forms]
+  `(let [err# (java.io.StringWriter.)]
+     (with-bindings {#'*err* err#}
+       ~@forms)
+     (str err#)))
+
+(defn eval-sexp [socket sexp]
+  (let [out (java.io.StringWriter.)
+        code-ns (str (.data socket "ns"))]
+    (try
+      {:code {:ns code-ns :text (ppr sexp)}
+       :result (ppr (eval* socket sexp {#'*out* out #'*err* out}))
+       :out (str out)}
+      (catch Exception e
+        {:code {:ns code-ns :text (ppr sexp)}
+         :error (with-err-str (repl/pst (repl/root-cause e)))
+         :out (str out)}))))
+
+(defn eval-stream [socket s]
+  (loop [sexp (read s false nil)
+         results []]
+    (if (not (nil? sexp))
+      (let [result (eval-sexp socket sexp)]
+        (if (result :error)
+          (conj results result)
+          (recur (read s false nil) (conj results result))))
+      results)))
+
+(defn eval-string [socket s]
+  (eval-stream socket (stream s)))
+
+(defn complete-string [socket s ns]
+  (complete/completions s (or ns (.data socket "ns"))))
 
 (defn on-connect [socket]
-  (.data socket "clj-sandbox" (sandbox)))
+  (.data socket "ns" (create-ns 'user)))
 
-(defn on-disconnect [socket]
-  (let [sandbox (.data socket "clj-sandbox")]
-    (remove-ns (ns-name (sandbox '*ns*)))))
+(defn on-disconnect [socket] )
 
 (defn on-message [socket json]
-  (let [repl-ns (.data socket "clj-namespace")
-        sandbox (.data socket "clj-sandbox")
-        msg (str (json/read-json json))
-        reader (stream msg)]
-    (let [results (eval-stream sandbox reader)]
-      (.send socket (json/json-str {:ns repl-ns :eval results})))))
+  (let [msg (json/read-json json)
+        results
+        (cond
+          (:eval msg)
+          {:eval (eval-string socket (:eval msg))}
+          (:complete msg)
+          {:complete (complete-string socket (:complete msg) (:ns msg))}
+          :else {:error "Bad message"})]
+    (.send socket
+           (json/json-str
+            (assoc results
+              :ns (str (.data socket "ns"))
+              :tag (:tag msg))))))
 
 (defn start [port]
   (doto (WebServers/createWebServer port)

@@ -1,62 +1,186 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// Core variables and mixins
+@import "../bootstrap/less/variables.less";
+@import "../bootstrap/less/mixins.less";
+
 html {
     height: 100%;
 }
 
 body {
     background: url("/m/black_paper.png");
-    height: 96%;
-    padding: 0 1%;
+    height: 100%;
 }
 
 div.frame {
     background: url("/m/cork_1.png");
-    border-radius: 10pt;
-    height: 100%;
+    position: absolute;
+    top: 6pt;
+    bottom: 6pt;
+    left: 12pt;
+    right: 12pt;
+    border-radius: 6pt;
 }
 
-.layout {
-    margin: 1%;
-    width: 98%;
-    height: 98%;
+div.left-pane {
+    position: absolute;
+    top: 6pt;
+    bottom: 6pt;
+    left: 0;
+    right: 50%;
+}
 
-    td {
-        padding-left: 12pt;
-        vertical-align: top;
-        padding-top: 8pt;
-    }
-
-    td:first-child {
-        padding-left: 0;
-    }
+div.right-pane {
+    position: absolute;
+    top: 6pt;
+    bottom: 6pt;
+    left: 50%;
+    right: 0;
 }
 
 #editor {
-    position: relative;
-    width: auto;
-    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 12pt;
+    right: 6pt;
+    bottom: 150pt;
     background: #f8f8f8;
 }
 
-#repl {
-    height: 1px;
-    border-bottom-left-radius: 6pt;
-    border-bottom-right-radius: 6pt;
+div.repl {
+    position: absolute;
+    height: 150pt;
+    bottom: 0;
+    left: 12pt;
+    right: 6pt;
     background: #f8f8f8;
-    padding: 6pt 12pt;
-    border-top: 2px groove white;
 }
 
-#editor, #repl {
+#editor, #repl-display p, #repl-input, #repl-prompt {
     font-family: "Ubuntu Mono";
     font-size: 20px;
 }
 
-#view {
-    width: 50%;
+#repl-display {
+    position: absolute;
+    top: 0;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
 
-    iframe {
+    p {
+        line-height: 24px;
+        margin: 0 6pt;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    p.code {
+        color: @purple;
+    }
+
+    p.out {
+        color: black;
+    }
+
+    p.result {
+        color: @green;
+    }
+
+    p.error {
+        color: @red;
+    }
+}
+
+div.repl-holder {
+    position: absolute;
+    height: 30px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 2px groove white;
+    margin: 0;
+    padding: 0;
+    background: white;
+
+    table {
+        margin-top: 1px;
         width: 100%;
-        height: 100%;
-        border: 1px inset white;
+        td.input-cell {
+            width: 100%;
+        }
+    }
+}
+
+#repl-prompt {
+    width: 1;
+    color: #666;
+}
+
+#repl-prompt:after {
+    content: '»';
+    padding-right: 0.3em;
+}
+
+#repl-input {
+    border: none;
+    margin: -4px 0 0 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    color: black;
+}
+
+#repl-input:focus {
+    box-shadow: none;
+}
+
+div.view-frame {
+    position: absolute;
+    left: 6pt;
+    right: 12pt;
+    top: 0;
+    bottom: 0;
+}
+
+#view {
+    width: 100%;
+    height: 100%;
+}
+
+#editor, div.repl, #view {
+    border-top: 1px solid #aaa;
+    border-left: 1px solid #aaa;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+}
+
+ul.repl-suggest {
+    list-style: none;
+    position: fixed;
+    margin: 0 0 4px 0;
+    border-bottom: none;
+    border-right: 1px solid #aaa;
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    background: white;
+    overflow-y: scroll;
+    white-space: nowrap;
+    max-height: 6em;
+
+    li {
+        padding: 0 8pt;
+        font-size: small;
+        cursor: pointer;
+    }
+
+    li.active {
+        background: #abf;
+        color: white;
     }
 }
