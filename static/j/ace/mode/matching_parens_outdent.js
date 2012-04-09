@@ -11,15 +11,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,48 +38,44 @@
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
+var Range = require("../range").Range;
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
+var MatchingParensOutdent = function() {};
 
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
+(function() {
 
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
+    this.checkOutdent = function(line, input) {
+        if (! /^\s+$/.test(line))
+            return false;
 
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
-    }
+        return /^\s*\)/.test(input);
+    };
 
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
+    this.autoOutdent = function(doc, row) {
+        var line = doc.getLine(row);
+        var match = line.match(/^(\s*\))/);
 
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
+        if (!match) return 0;
 
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
-};
+        var column = match[1].length;
+        var openBracePos = doc.findMatchingBracket({row: row, column: column});
 
+        if (!openBracePos || openBracePos.row == row) return 0;
+
+        var indent = this.$getIndent(doc.getLine(openBracePos.row));
+        doc.replace(new Range(row, 0, row, column-1), indent);
+    };
+
+    this.$getIndent = function(line) {
+        var match = line.match(/^(\s+)/);
+        if (match) {
+            return match[1];
+        }
+
+        return "";
+    };
+
+}).call(MatchingParensOutdent.prototype);
+
+exports.MatchingParensOutdent = MatchingParensOutdent;
 });

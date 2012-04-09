@@ -11,15 +11,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,48 +38,49 @@
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var Tokenizer = require("../tokenizer").Tokenizer;
+var ScssHighlightRules = require("./scss_highlight_rules").ScssHighlightRules;
+var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
-
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
-
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
-
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
-    }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
+var Mode = function() {
+    this.$tokenizer = new Tokenizer(new ScssHighlightRules().getRules(), "i");
+    this.$outdent = new MatchingBraceOutdent();
+    this.foldingRules = new CStyleFoldMode();
 };
+oop.inherits(Mode, TextMode);
+
+(function() {
+    
+    this.getNextLineIndent = function(state, line, tab) {
+        var indent = this.$getIndent(line);
+
+        // ignore braces in comments
+        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
+        if (tokens.length && tokens[tokens.length-1].type == "comment") {
+            return indent;
+        }
+
+        var match = line.match(/^.*\{\s*$/);
+        if (match) {
+            indent += tab;
+        }
+
+        return indent;
+    };
+
+    this.checkOutdent = function(state, line, input) {
+        return this.$outdent.checkOutdent(line, input);
+    };
+
+    this.autoOutdent = function(state, doc, row) {
+        this.$outdent.autoOutdent(doc, row);
+    };
+
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
 
 });

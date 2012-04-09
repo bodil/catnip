@@ -1,4 +1,5 @@
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -11,15 +12,16 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Mihai Sucan <mihai DOT sucan AT gmail DOT com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,48 +40,55 @@
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
-
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
-
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
-
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
-
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
-    }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
+var UndoManager = function() {
+    this.reset();
 };
 
+(function() {
+
+    this.execute = function(options) {
+        var deltas = options.args[0];
+        this.$doc  = options.args[1];
+        this.$undoStack.push(deltas);
+        this.$redoStack = [];
+    };
+
+    this.undo = function(dontSelect) {
+        var deltas = this.$undoStack.pop();
+        var undoSelectionRange = null;
+        if (deltas) {
+            undoSelectionRange =
+                this.$doc.undoChanges(deltas, dontSelect);
+            this.$redoStack.push(deltas);
+        }
+        return undoSelectionRange;
+    };
+
+    this.redo = function(dontSelect) {
+        var deltas = this.$redoStack.pop();
+        var redoSelectionRange = null;
+        if (deltas) {
+            redoSelectionRange =
+                this.$doc.redoChanges(deltas, dontSelect);
+            this.$undoStack.push(deltas);
+        }
+        return redoSelectionRange;
+    };
+
+    this.reset = function() {
+        this.$undoStack = [];
+        this.$redoStack = [];
+    };
+
+    this.hasUndo = function() {
+        return this.$undoStack.length > 0;
+    };
+
+    this.hasRedo = function() {
+        return this.$redoStack.length > 0;
+    };
+
+}).call(UndoManager.prototype);
+
+exports.UndoManager = UndoManager;
 });

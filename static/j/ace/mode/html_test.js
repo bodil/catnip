@@ -11,15 +11,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,51 +35,40 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+if (typeof process !== "undefined") {
+    require("amd-loader");
+}
+
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
+var EditSession = require("../edit_session").EditSession;
+var Range = require("../range").Range;
+var HtmlMode = require("./html").Mode;
+var assert = require("../test/assertions");
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
+module.exports = {
+    setUp : function() {    
+        this.mode = new HtmlMode();
+    },
 
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
+    "test: toggle comment lines should not do anything" : function() {
+        var session = new EditSession(["  abc", "cde", "fg"]);
 
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
+        var range = new Range(0, 3, 1, 1);
+        var comment = this.mode.toggleCommentLines("start", session, 0, 1);
+        assert.equal(["  abc", "cde", "fg"].join("\n"), session.toString());
+    },
 
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
+    "test: next line indent should be the same as the current line indent" : function() {
+        assert.equal("     ", this.mode.getNextLineIndent("start", "     abc"));
+        assert.equal("", this.mode.getNextLineIndent("start", "abc"));
+        assert.equal("\t", this.mode.getNextLineIndent("start", "\tabc"));
     }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
 };
 
 });
+
+if (typeof module !== "undefined" && module === require.main) {
+    require("asyncjs").test.testcase(module.exports).exec()
+}

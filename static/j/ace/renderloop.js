@@ -11,15 +11,16 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,48 +39,36 @@
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
+var event = require("./lib/event");
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
-
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
-
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
-
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
-    }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
+var RenderLoop = function(onRender, win) {
+    this.onRender = onRender;
+    this.pending = false;
+    this.changes = 0;
+    this.window = win || window;
 };
 
+(function() {
+
+    this.schedule = function(change) {
+        //this.onRender(change);
+        //return;
+        this.changes = this.changes | change;
+        if (!this.pending) {
+            this.pending = true;
+            var _self = this;
+            event.nextTick(function() {
+                _self.pending = false;
+                var changes;
+                while (changes = _self.changes) {
+                    _self.changes = 0;
+                    _self.onRender(changes);
+                }
+            }, this.window);
+        }
+    };
+
+}).call(RenderLoop.prototype);
+
+exports.RenderLoop = RenderLoop;
 });

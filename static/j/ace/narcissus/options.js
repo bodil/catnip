@@ -1,3 +1,4 @@
+/* vim: set sw=4 ts=4 et tw=78: */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -11,15 +12,20 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is the Narcissus JavaScript engine.
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Brendan Eich <brendan@mozilla.org>.
+ * Portions created by the Initial Developer are Copyright (C) 2004
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *   Tom Austin <taustin@ucsc.edu>
+ *   Brendan Eich <brendan@mozilla.org>
+ *   Shu-Yu Guo <shu@rfrn.org>
+ *   Dave Herman <dherman@mozilla.com>
+ *   Dimitris Vardoulakis <dimvar@ccs.neu.edu>
+ *   Patrick Walton <pcwalton@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,50 +42,20 @@
  * ***** END LICENSE BLOCK ***** */
 
 define(function(require, exports, module) {
-"use strict";
 
-require("./lib/fixoldbrowsers");
+// Global variables to hide from the interpreter
+exports.hiddenHostGlobals = { Narcissus: true };
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
+// Desugar SpiderMonkey language extensions?
+exports.desugarExtensions = false;
 
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
+// Allow HTML comments?
+exports.allowHTMLComments = false;
 
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
+// Allow non-standard Mozilla extensions?
+exports.mozillaMode = true;
 
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
-    }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
-};
+// Allow experimental paren-free mode?
+exports.parenFreeMode = false;
 
 });

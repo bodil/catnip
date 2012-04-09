@@ -11,15 +11,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *      Fabian Jakobs <fabian AT ajax DOT org>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,51 +35,51 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+if (typeof process !== "undefined") {
+    require("amd-loader");
+}
+
 define(function(require, exports, module) {
 "use strict";
 
-require("./lib/fixoldbrowsers");
+var EditSession = require("../edit_session").EditSession;
 
-var Dom = require("./lib/dom");
-var Event = require("./lib/event");
+module.exports = {
+    setUp : function() {
+        this.start = Date.now();
+    },
+    
+    tearDown : function() {
+        console.log("took: ", Date.now() - this.start + "ms");
+    },
+    
+    "test: document to screen position": function() {
+        var s = new EditSession(Array(6000).join('someText\n'));
 
-var Editor = require("./editor").Editor;
-var EditSession = require("./edit_session").EditSession;
-var UndoManager = require("./undomanager").UndoManager;
-var Renderer = require("./virtual_renderer").VirtualRenderer;
+        for (var i=0; i<6000; i++)
+            s.documentToScreenPosition(i, 0);
 
-// The following require()s are for inclusion in the built ace file
-require("./worker/worker_client");
-require("./keyboard/hash_handler");
-require("./keyboard/state_handler");
-require("./lib/net");
-require("./placeholder");
-require("./config").init();
+        for (var i=0; i<6000; i++)
+            s.documentToScreenPosition(i, 0);
 
-exports.edit = function(el) {
-    if (typeof(el) == "string") {
-        el = document.getElementById(el);
+        console.log(s.$rowCache.length);
+    },
+    
+    "test: screen to document position": function() {
+        var s = new EditSession(Array(6000).join('someText\n'));
+
+        for (var i=0; i<6000; i++)
+            s.screenToDocumentPosition(i, 0);
+
+        for (var i=0; i<6000; i++)
+            s.documentToScreenPosition(i, 0);
+
+        console.log(s.$rowCache.length);
     }
-
-    var doc = new EditSession(Dom.getInnerText(el));
-    doc.setUndoManager(new UndoManager());
-    el.innerHTML = '';
-
-    var editor = new Editor(new Renderer(el, require("./theme/textmate")));
-    editor.setSession(doc);
-
-    var env = {};
-    env.document = doc;
-    env.editor = editor;
-    editor.resize();
-    Event.addListener(window, "resize", function() {
-        editor.resize();
-    });
-    el.env = env;
-    // Store env on editor such that it can be accessed later on from
-    // the returned object.
-    editor.env = env;
-    return editor;
 };
 
 });
+
+if (typeof module !== "undefined" && module === require.main) {
+    require("asyncjs").test.testcase(module.exports).exec();
+}

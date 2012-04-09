@@ -3,8 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Core variables and mixins
-@import "../bootstrap/less/variables.less";
-@import "../bootstrap/less/mixins.less";
+@import "../bootstrap/less/bootstrap.less";
 
 html {
     height: 100%;
@@ -13,6 +12,7 @@ html {
 body {
     background: url("/m/black_paper.png");
     height: 100%;
+    visibility: visible;
 }
 
 div.frame {
@@ -25,9 +25,17 @@ div.frame {
     border-radius: 6pt;
 }
 
+div.navbar {
+    margin: 6pt 12pt;
+
+    a.dropdown-toggle {
+        cursor: pointer;
+    }
+}
+
 div.left-pane {
     position: absolute;
-    top: 6pt;
+    top: 42pt;
     bottom: 6pt;
     left: 0;
     right: 50%;
@@ -35,7 +43,7 @@ div.left-pane {
 
 div.right-pane {
     position: absolute;
-    top: 6pt;
+    top: 42pt;
     bottom: 6pt;
     left: 50%;
     right: 0;
@@ -46,13 +54,13 @@ div.right-pane {
     top: 0;
     left: 12pt;
     right: 6pt;
-    bottom: 150pt;
+    bottom: 131pt;
     background: #f8f8f8;
 }
 
 div.repl {
     position: absolute;
-    height: 150pt;
+    height: 131pt;
     bottom: 0;
     left: 12pt;
     right: 6pt;

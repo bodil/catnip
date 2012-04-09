@@ -7,22 +7,45 @@
     <meta charset="utf-8">
     <title>Mizugorou</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet/less" type="text/css" href="/bootstrap/less/bootstrap.less">
     <link rel="stylesheet/less" type="text/css" href="/c/screen.less">
-    <script type="text/javascript" src="/j/less-1.3.0.min.js"></script>
-    <script type="text/javascript" src="/j/jquery-1.7.2.min.js"></script>
-    <script type="text/javascript" src="/j/jquery.caret.js"></script>
-    <script type="text/javascript" src="/j/jquery.scrollintoview.js"></script>
-    <script type="text/javascript" src="/j/coffee-script.js"></script>
-    <script type="text/javascript" src="/j/ace/ace.js"></script>
-    <script type="text/javascript" src="/j/ace/theme-chrome.js"></script>
-    <script type="text/javascript" src="/j/ace/mode-clojure.js"></script>
-    <script type="text/javascript" src="/j/caret.js"></script>
-    <script type="text/coffeescript" src="/j/keybindings.coffee"></script>
-    <script type="text/coffeescript" src="/j/app.coffee"></script>
+    <style>body { visibility: hidden; }</style>
+
+    <script type="text/javascript">
+      var require = {
+        baseUrl: "/j",
+        priority: [
+          "/j/less.js",
+          "/j/jquery/jquery.js",
+          "/j/jquery/caret.js",
+          "/j/jquery/scrollintoview.js",
+          "/j/bootstrap/dropdown.js",
+        ],
+        deps: [
+          "cs!mizugorou/app"
+        ]
+      };
+    </script>
+    <script type="text/javascript" src="/j/require.js"></script>
   </head>
   <body>
     <div class="frame">
+      <div class="navbar">
+        <div class="navbar-inner">
+          <div class="container">
+            <a class="brand">Mizugorou</a>
+            <ul class="nav">
+              <li class="divider-vertical"></li>
+              <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown">Files
+                  <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu" id="files">
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
       <div class="left-pane">
         <div id="editor">(ns ohai.fac
   (:use clojure.test))
@@ -50,24 +73,5 @@
         </div>
       </div>
     </div>
-<!--       <table class="layout"> -->
-<!--         <tbody> -->
-<!--           <tr> -->
-<!--             <td class="editor-cell"> -->
-<!--               <div id="editor">(ns ohai.fac) -->
-
-<!-- (defn fac [n] -->
-<!--   (if (> n 1) (* n (fac (dec n))) n)) -->
-<!-- </div> -->
-<!--             </td> -->
-<!--             <td id="view" rowspan="2"> -->
-<!--               <iframe src="testframe.html"></iframe> -->
-<!--             </td> -->
-<!--           </tr> -->
-<!--           <tr> -->
-<!--             <td id="repl">&gt;&gt;&gt; REPL goes here</td> -->
-<!--           </tr> -->
-<!--         </tbody> -->
-<!--       </table> -->
   </body>
 </html>
