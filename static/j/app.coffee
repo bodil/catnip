@@ -182,7 +182,17 @@ class REPL
             "test-fail"
           else if result.pass
             "test-pass"
-          if test.out then @replPrint("out", test.out)
+          if test.out
+            @replPrint("out", test.out)
+            annotations = test.out.match(/^(?:FAIL|ERROR).*NO_SOURCE_FILE:\d+\)$\n^\s*expected:.*$\n\s*actual:.*$/mg)
+            if annotations
+              annotations = (a.match(/^(?:FAIL|ERROR).*NO_SOURCE_FILE:(\d+)\)$\n([\s\S]*)/m)[1..] for a in annotations)
+              @editor.getSession().setAnnotations ({
+                row: +a[0] - 1
+                column: null
+                text: a[1]
+                type: "warning"
+              } for a in annotations)
           if type
             @replPrint(type, "#{msg.ns}: #{result.pass} passed, #{result.fail} failed, #{result.error} errors.")
             @display.addClass(type)
