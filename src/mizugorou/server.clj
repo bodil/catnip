@@ -7,8 +7,9 @@
             [clojure.repl :as repl]
             [clojure.pprint :as pprint]
             [clojure.contrib.string :as string]
-            [complete.core :as complete])
-  (:use clojure.test)
+            [complete.core :as complete]
+            [mizugorou.filesystem :as fs])
+  (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler StaticFileHandler]))
 
@@ -87,22 +88,36 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
+  (println "Message received: " (json/read-json json))
   (let [msg (json/read-json json)
         results
         (try
           (cond
             (:eval msg)
             (eval-string socket (:eval msg))
+
             (:complete msg)
             {:complete (complete-string socket (:complete msg) (:ns msg))}
+
+            (:fs msg)
+            {:fs (fs/fs-command (:fs msg))}
+
             :else {:error "Bad message"})
           (catch Exception e
             {:error (with-err-str (repl/pst (repl/root-cause e)))}))]
-    (.send socket
-           (json/json-str
-            (assoc results
-              :ns (str (.data socket "ns"))
-              :tag (:tag msg))))))
+    (try
+      (.send socket
+             (json/json-str
+              (assoc results
+                :ns (str (.data socket "ns"))
+                :tag (:tag msg))))
+      (println "Response: " (json/json-str results))
+      (catch Exception e
+        (let [message (with-err-str (repl/pst (repl/root-cause e)))]
+          (.send socket (json/json-str
+                        {:error "Failed to serialise response."
+                         :exception message}))
+          (println message))))))
 
 (defn start [port]
   (doto (WebServers/createWebServer port)

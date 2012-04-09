@@ -36,7 +36,7 @@
             <ul class="nav">
               <li class="divider-vertical"></li>
               <li class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown">Files
+                <a class="dropdown-toggle" data-toggle="dropdown">Buffers
                   <b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu" id="files">
@@ -47,14 +47,7 @@
         </div>
       </div>
       <div class="left-pane">
-        <div id="editor">(ns ohai.fac
-  (:use clojure.test))
-
-(with-test
-  (defn fac [n]
-    (if (> n 1) (* n (fac (dec n))) n))
-  (is (= 120 (fac 5))))
-</div>
+        <div id="editor"></div>
         <div class="repl">
           <div id="repl-display"></div>
           <div class="repl-holder">

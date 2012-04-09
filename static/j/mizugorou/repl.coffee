@@ -2,12 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "cs!mizugorou/keybindings", "mizugorou/caret"
-        "cs!mizugorou/suggestbox"], ($, keybindings, caret, SuggestBox) ->
+define ["jquery", "cs!./keybindings", "./caret"
+        "cs!./suggestbox", "cs!./fileselector"
+        "ace/edit_session", "cs!./modemap"
+], ($, keybindings, caret, SuggestBox, FileSelector, edit_session, modemap) ->
 
   class REPL
     constructor: (@input, @display, @prompt, @editor) ->
       @input.on "keydown", @onKeyDown
+
+      @buffers = {}
 
       @history = []
       @historyPos = 0
@@ -26,6 +30,7 @@ define ["jquery", "cs!mizugorou/keybindings", "mizugorou/caret"
         "tab": @complete
         "C-s": @evalBuffer
         "C-,": @runTests
+        "C-space": => @sendToSocket { fs: { command: "files" } }
 
       if @suggestBox
         for key of keymap
@@ -90,6 +95,7 @@ define ["jquery", "cs!mizugorou/keybindings", "mizugorou/caret"
       caret.getTextBoundingRect @input[0], begin, end
 
     onSocketMessage: (e) =>
+      # console.log "incoming msg:", e.data
       msg = JSON.parse(e.data)
       if msg.ns
         @prompt.text(msg.ns)
@@ -97,6 +103,8 @@ define ["jquery", "cs!mizugorou/keybindings", "mizugorou/caret"
         @onErrorMessage msg
       else if msg.complete?
         @onCompleteMessage msg
+      else if msg.fs?
+        @onFileSystemMessage msg
       else if msg.eval?
         @onEvalMessage msg
       else
@@ -221,3 +229,38 @@ define ["jquery", "cs!mizugorou/keybindings", "mizugorou/caret"
       for i in msg.eval[1..]
         i.line = closest(i.line) + 1
       msg
+
+    onFileSystemMessage: (msg) =>
+      console.log "got message:", msg
+      if msg.fs.command == "files"
+        new FileSelector(msg.fs.files).on("selected", @onFileSelected)
+      else if msg.fs.command == "read"
+        @openBuffer(msg.fs.path, msg.fs.file)
+
+    onFileSelected: (e) =>
+      if not e.cancelled
+        @sendToSocket
+          fs:
+            command: "read"
+            path: e.selected
+
+    openBuffer: (path, content) =>
+      @editor.getSession()._storedCursorPos = @editor.getCursorPosition()
+      filename = path.split("/").pop()
+      extension = path.split(".").pop()
+      $("div.navbar a.brand").text(filename)
+      window.document.title = "#{path} : Mizugorou"
+      if @buffers[path]?
+        session = @buffers[path]
+        session.setValue(content)
+      else
+        mode = modemap[extension]
+        session = new edit_session.EditSession(content, if mode then new mode)
+        @buffers[path] = session
+        session.setUseSoftTabs(true)
+        session.setTabSize(2)
+        session.bufferName = path
+      @editor.setSession(session)
+      if session._storedCursorPos?
+        @editor.navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
+      @editor.focus()

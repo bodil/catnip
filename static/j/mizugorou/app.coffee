@@ -3,19 +3,15 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery",
-        "ace/ace", "ace/mode/clojure", "ace/theme/chrome"
-        "cs!./repl"], ($, ace, clojure_mode, ace_theme, REPL) ->
+        "ace/ace", "ace/theme/chrome", "ace/config"
+        "cs!./repl"], ($, ace, ace_theme, config, REPL) ->
   $(document).ready ->
     editor = ace.edit "editor"
     editor.setTheme ace_theme
-    ClojureMode = clojure_mode.Mode
-    editor.getSession().setMode new ClojureMode
-    editor.getSession().setUseSoftTabs true
-    editor.getSession().setTabSize 2
-    editor.focus()
-    editor.navigateFileEnd()
 
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor
+    editor.focus()
+    editor.navigateFileEnd()
 
     editor.commands.addCommand
       name: "evalBuffer"
@@ -41,3 +37,8 @@ define ["jquery",
       name: "splitLine"
       bindKey: "Ctrl-Return"
       exec: (env, args, request) -> editor.splitLine()
+
+    editor.commands.addCommand
+      name: "test"
+      bindKey: "Ctrl-Space"
+      exec: => repl.sendToSocket { fs: { command: "files" } }
