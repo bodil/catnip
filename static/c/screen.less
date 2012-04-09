@@ -71,6 +71,12 @@ div.repl {
     left: 0;
     right: 0;
     overflow-y: auto;
+    background: #f8f8f8;
+    -webkit-transition: background-color 2s ease;
+    -moz-transition: background-color 2s ease;
+    -ms-transition: background-color 2s ease;
+    -o-transition: background-color 2s ease;
+    transition: background-color 2s ease;
 
     p {
         line-height: 24px;
@@ -81,6 +87,10 @@ div.repl {
 
     p.code {
         color: @purple;
+
+        span.clojure {
+            color: black;
+        }
     }
 
     p.out {
@@ -94,6 +104,45 @@ div.repl {
     p.error {
         color: @red;
     }
+
+    p.test-pass {
+        color: @green;
+    }
+
+    p.test-fail {
+        color: @red;
+    }
+
+    p.test-error {
+        color: @orange;
+    }
+}
+
+#repl-display.test-pass {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @green;
+}
+
+#repl-display.test-fail {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @red;
+}
+
+#repl-display.test-error {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @orange;
 }
 
 div.repl-holder {
@@ -118,7 +167,8 @@ div.repl-holder {
 
 #repl-prompt {
     width: 1;
-    color: #666;
+    color: @purple;
+    padding-left: 6pt;
 }
 
 #repl-prompt:after {

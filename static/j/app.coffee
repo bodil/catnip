@@ -25,6 +25,7 @@ class REPL
       "C-r": @focusEditor
       "tab": @complete
       "C-s": @evalBuffer
+      "C-,": @runTests
 
     if @suggestBox
       for key of keymap
@@ -42,6 +43,7 @@ class REPL
     @pushHistory cmd
     @sendToSocket
       eval: cmd
+      tag: "repl"
 
   pushHistory: (cmd) =>
     unless @history[@history.length - 1] == cmd
@@ -78,7 +80,7 @@ class REPL
   complete: (e) =>
     e?.preventDefault()
     if @suggestBox? then @suggestBox.close()
-    cmd = @input.val()[...@input.caret().begin].match(/[^\s()\[\]{},\'`~\#]*$/)[0]
+    cmd = @input.val()[...@input.caret().begin].match(/[^\s()\[\]{},\'`~\#@]*$/)[0]
     if cmd
       @sendToSocket
         complete: cmd
@@ -88,8 +90,13 @@ class REPL
     caret.getTextBoundingRect @input[0], begin, end
 
   onSocketMessage: (e) =>
+    console.log e.data
     msg = JSON.parse(e.data)
-    if msg.complete?
+    if msg.ns
+      @prompt.text(msg.ns)
+    if msg.error?
+      @onErrorMessage msg
+    else if msg.complete?
       @onCompleteMessage msg
     else if msg.eval?
       @onEvalMessage msg
@@ -97,27 +104,115 @@ class REPL
       console.log "Unknown message received:", msg
 
   sendToSocket: (msg) =>
-    @socket.send JSON.stringify msg
+    @socket.send(JSON.stringify(msg))
+    console.log JSON.stringify msg
 
   onCompleteMessage: (msg) =>
     if @suggestBox? then @suggestBox.close()
     if msg.complete.length
       @suggestBox = new SuggestBox this, msg.complete, @getCaretBounds()
 
-  onEvalMessage: (msg) =>
-    @prompt.text(msg.ns)
-    for i in msg.eval
-      @display.append($('<p class="code"></p>')
-        .text("#{i.code.ns}» ")
-        .append($('<span class="clojure"></span>').text(i.code.text)))
-      if i.out then @display.append($('<p class="output"></p>').text(i.out))
-      if i.error
-        result = $('<p class="error"></p>').text(i.error)
-      else
-        result = $('<p class="result"></p>').text(i.result)
-      @display.append(result)
-    result.scrollintoview()
+  replPrint: (type, msg, ns) =>
+    node = $("<p></p>").addClass(type)
+    if type == "code" and ns
+      node.text("#{ns}» ").append($('<span class="clojure"></span>').text(msg))
+    else
+      node.text(msg)
+    @display.append(node)
+    @lastOutputNode = node
+    if !@replFlushTimeout?
+      @replFlushTimeout = window.setTimeout(@onReplFlushTimeout, 50)
 
+  onReplFlushTimeout: =>
+    @replFlushTimeout = null
+    @lastOutputNode?.scrollintoview({duration: 50})
+    @lastOutputNode = null
+
+  onErrorMessage: (msg) =>
+    @replPrint("error",
+      if msg.line? then "Line #{msg.line}: #{msg.error}" else msg.error)
+    if msg.line? and msg.annotation?
+      @editor.getSession().setAnnotations([
+        row: msg.line - 1
+        column: null
+        text: msg.annotation
+        type: "error"
+      ])
+    else
+      @editor.getSession().clearAnnotations()
+
+  onEvalMessage: (msg) =>
+    msg = @correctLines(msg)
+    if msg.tag == "repl"
+      for i in msg.eval
+        @replPrint("code", i.code.text, i.code.ns)
+        if i.out then @replPrint("out", i.out)
+        if i.error
+          @replPrint("error", i.error)
+        else
+          @replPrint("result", i.result)
+    else
+      @editor.getSession().clearAnnotations()
+      error = null
+      for i in msg.eval
+        if i.error
+          error = i
+          break
+      if error
+        result = @replPrint("error", error.error)
+        if error.line? and error.annotation?
+          @editor.getSession().setAnnotations([
+            row: (error.errline or error.line) - 1
+            column: null
+            text: error.annotation
+            type: "error"
+          ])
+      else
+        if msg.tag != "test"
+          result = @replPrint("result", "#{msg.ns} compiled successfully.")
+        else
+          test = msg.eval[msg.eval.length - 1]
+          result = {}
+          for i in test.result.match(/{(.*)}/)[1].split(",")
+            [key, value] = i.match(/^\s*:(.*)\s+(.*)$/)[1..]
+            result[key] = +value
+          type = if result.error
+            "test-error"
+          else if result.fail
+            "test-fail"
+          else if result.pass
+            "test-pass"
+          if test.out then @replPrint("out", test.out)
+          if type
+            @replPrint(type, "#{msg.ns}: #{result.pass} passed, #{result.fail} failed, #{result.error} errors.")
+            @display.addClass(type)
+            window.setTimeout (=> @display.removeClass(type)), 10
+          else
+            @replPrint("test-error", "No tests in #{msg.ns}.")
+
+  evalBuffer: (e) =>
+    e?.preventDefault()
+    @sendToSocket
+      eval: @editor.getSession().getValue()
+      tag: "compile"
+
+  runTests: (e) =>
+    e?.preventDefault()
+    @sendToSocket
+      eval: @editor.getSession().getValue() + "\n(clojure.test/run-tests)"
+      tag: "test"
+
+  correctLines: (msg) =>
+    lines = (l.trim() for l in @editor.getSession().getValue().split("\n"))
+    lines = ((if l[0] == ";" then "" else l) for l in lines)
+    closest = (n) ->
+      until lines[n] or n >= lines.length
+        n += 1
+      n
+    msg.eval[0].line = closest(0) + 1
+    for i in msg.eval[1..]
+      i.line = closest(i.line) + 1
+    msg
 
 
 class SuggestBox
@@ -157,7 +252,7 @@ class SuggestBox
     e?.preventDefault()
     val = @repl.input.val()
     caretPos = @repl.input.caret().begin
-    cmd = val[...caretPos].match(/[^\s()\[\]{},\'`~\#]*$/)[0]
+    cmd = val[...caretPos].match(/[^\s()\[\]{},\'`~\#@]*$/)[0]
     start = caretPos - cmd.length
     afterCaret = val[caretPos..]
     beforeCaret = val[...start] + @activeItem()
@@ -219,6 +314,11 @@ $(document).ready ->
     name: "evalBuffer"
     bindKey: "Ctrl-S"
     exec: (env, args, request) -> repl.evalBuffer()
+
+  editor.commands.addCommand
+    name: "runTests"
+    bindKey: "Ctrl-,"
+    exec: (env, args, request) -> repl.runTests()
 
   editor.commands.addCommand
     name: "focusRepl"

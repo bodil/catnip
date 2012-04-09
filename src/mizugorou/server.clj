@@ -13,7 +13,7 @@
            [org.webbitserver.handler StaticFileHandler]))
 
 (defn stream [s]
-  (java.io.PushbackReader. (java.io.StringReader. s)))
+  (clojure.lang.LineNumberingPushbackReader. (java.io.StringReader. s)))
 
 (with-test
   (defn ppr [el]
@@ -41,25 +41,42 @@
         code-ns (str (.data socket "ns"))]
     (try
       {:code {:ns code-ns :text (ppr sexp)}
-       :result (ppr (eval* socket sexp {#'*out* out #'*err* out}))
+       :result (ppr (eval* socket sexp
+                           {#'*out* out #'*err* out #'*test-out* out}))
        :out (str out)}
       (catch Exception e
-        {:code {:ns code-ns :text (ppr sexp)}
-         :error (with-err-str (repl/pst (repl/root-cause e)))
-         :out (str out)}))))
+        (let [e (repl/root-cause e)
+              msg (.getMessage e)
+              chop-exc-re #"^java\.[\w.]+Exception: (.*)$"
+              errline-re #":(\d+)\)$"]
+          {:code {:ns code-ns :text (ppr sexp)}
+           :out (str out)
+           :error (with-err-str (repl/pst e))
+           :annotation
+           (or (if-let [m (re-find chop-exc-re msg)] (second m)) msg)
+           :errline
+           (if-let [m (re-find errline-re msg)] (Integer. (second m)))})))))
 
 (defn eval-stream [socket s]
-  (loop [sexp (read s false nil)
+  (loop [line (.getLineNumber s)
+         sexp (read s false nil)
          results []]
     (if (not (nil? sexp))
-      (let [result (eval-sexp socket sexp)]
+      (let [result (assoc (eval-sexp socket sexp) :line line)]
         (if (result :error)
           (conj results result)
-          (recur (read s false nil) (conj results result))))
+          (recur (.getLineNumber s) (read s false nil) (conj results result))))
       results)))
 
 (defn eval-string [socket s]
-  (eval-stream socket (stream s)))
+  (let [s (stream s)]
+    (try
+      {:eval (eval-stream socket s)}
+      (catch Exception e
+        (let [e (repl/root-cause e)]
+          {:error (with-err-str (repl/pst e))
+           :annotation (.getMessage e)
+           :line (.getLineNumber s)})))))
 
 (defn complete-string [socket s ns]
   (complete/completions s (or ns (.data socket "ns"))))
@@ -72,12 +89,15 @@
 (defn on-message [socket json]
   (let [msg (json/read-json json)
         results
-        (cond
-          (:eval msg)
-          {:eval (eval-string socket (:eval msg))}
-          (:complete msg)
-          {:complete (complete-string socket (:complete msg) (:ns msg))}
-          :else {:error "Bad message"})]
+        (try
+          (cond
+            (:eval msg)
+            (eval-string socket (:eval msg))
+            (:complete msg)
+            {:complete (complete-string socket (:complete msg) (:ns msg))}
+            :else {:error "Bad message"})
+          (catch Exception e
+            {:error (with-err-str (repl/pst (repl/root-cause e)))}))]
     (.send socket
            (json/json-str
             (assoc results

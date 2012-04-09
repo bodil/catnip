@@ -24,10 +24,13 @@
   <body>
     <div class="frame">
       <div class="left-pane">
-        <div id="editor">(ns ohai.fac)
+        <div id="editor">(ns ohai.fac
+  (:use clojure.test))
 
-(defn fac [n]
-  (if (> n 1) (* n (fac (dec n))) n))
+(with-test
+  (defn fac [n]
+    (if (> n 1) (* n (fac (dec n))) n))
+  (is (= 120 (fac 5))))
 </div>
         <div class="repl">
           <div id="repl-display"></div>
