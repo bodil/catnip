@@ -24,14 +24,22 @@ define ["jquery", "ace/lib/event_emitter"
         node = $("<li></li>").addClass("item").text(buffer)
         @list.append(node)
         node[0]
-      @list.append($("<li></li>").addClass("divider"))
-      openItem = $("<li></li>").addClass("item").text("Open...")
-      @nodes.push(openItem)
-      @list.append(openItem)
+      @list.append($("<li></li>").addClass("divider")) if @buffers.length
+      @openItem = $("<li></li>").addClass("item").text("Open...")
+        .append($("<span></span>").addClass("shortcut").text("Ctrl-F"))
+      @nodes.push(@openItem)
+      @list.append(@openItem)
+      @newItem = $("<li></li>").addClass("item").text("New...")
+        .append($("<span></span>").addClass("shortcut").text("Ctrl-Shift-F"))
+      @nodes.push(@newItem)
+      @list.append(@newItem)
 
     onClick: (e) =>
       index = @nodes.indexOf(e.target)
       if index < 0
-        @repl.selectFile()
+        if (e.target == @openItem[0])
+          @repl.selectFile()
+        else if (e.target == @newItem[0])
+          @repl.createFile()
       else
         @repl.loadBuffer(@buffers[index])
