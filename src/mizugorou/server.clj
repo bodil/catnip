@@ -11,7 +11,7 @@
             [mizugorou.filesystem :as fs])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
-           [org.webbitserver.handler StaticFileHandler]))
+           [org.webbitserver.handler EmbeddedResourceHandler]))
 
 (defn stream [s]
   (clojure.lang.LineNumberingPushbackReader. (java.io.StringReader. s)))
@@ -126,7 +126,7 @@
             (onOpen [c] (on-connect c))
             (onClose [c] (on-disconnect c))
             (onMessage [c j] (on-message c j))))
-    (.add (StaticFileHandler. "static"))
+    (.add (EmbeddedResourceHandler. "mizugorou"))
     (.start)))
 
 (defn -main [& m]
