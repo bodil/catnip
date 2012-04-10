@@ -11,6 +11,7 @@ define ["jquery",
 
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor
     new BufferMenu($("#buffer-menu"), repl)
+    repl.loadBuffer("project.clj")
 
     editor.focus()
     editor.navigateFileEnd()

@@ -27,7 +27,10 @@ define ["jquery", "cs!./keybindings", "./caret"
 
       WebSocket = window.MozWebSocket || window.WebSocket
       @socket = new WebSocket("ws://" + window.location.host + "/repl")
+      @socket.onopen = @onSocketOpen
       @socket.onmessage = @onSocketMessage
+      @socketQueue = []
+      @socketOpen = false
 
     onKeyDown: (e) =>
       keymap =
@@ -104,6 +107,13 @@ define ["jquery", "cs!./keybindings", "./caret"
       { begin, end } = @input.caret()
       caret.getTextBoundingRect @input[0], begin, end
 
+    onSocketOpen: (e) =>
+      @socketOpen = true
+      @_emit "socketopen"
+      for msg in @socketQueue
+        @sendToSocket(msg)
+      @socketQueue = []
+
     onSocketMessage: (e) =>
       # console.log "incoming msg:", e.data
       msg = JSON.parse(e.data)
@@ -121,7 +131,10 @@ define ["jquery", "cs!./keybindings", "./caret"
         console.log "Unknown message received:", msg
 
     sendToSocket: (msg) =>
-      @socket.send(JSON.stringify(msg))
+      if @socketOpen
+        @socket.send(JSON.stringify(msg))
+      else
+        @socketQueue.push(msg)
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
