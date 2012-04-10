@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
+define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
 ], ($, keybindings, event_emitter) ->
 
   EventEmitter = event_emitter.EventEmitter
@@ -99,12 +99,29 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
       @activeFilter = ""
       @selected = null
       @activate(if @bufferHistory.length > 1 then 1 else 0)
+      swallow = (e) -> e.preventDefault()
+      @keymap =
+        "up": @up
+        "down": @down
+        "pageup": @pageUp
+        "pagedown": @pageDown
+        "home": @top
+        "end": @bottom
+        "left": swallow
+        "right": swallow
+        "return": @select
+        "tab": @select
+        "esc": @close
+        "C-g": @close
 
     close: (e) =>
       e?.preventDefault()
       @box.remove()
       @input.remove()
       $(window).off("resize", @onResize)
+      @completeSelection()
+
+    completeSelection: =>
       @_emit "selected",
         selected: @selected
         cancelled: not @selected?
@@ -174,20 +191,7 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
       @scrollTo(@activeNode)
 
     onKeyDown: (e) =>
-      swallow = (e) -> e.preventDefault()
-      keybindings.delegate e,
-        "up": @up
-        "down": @down
-        "pageup": @pageUp
-        "pagedown": @pageDown
-        "home": @top
-        "end": @bottom
-        "left": swallow
-        "right": swallow
-        "return": @select
-        "tab": @select
-        "esc": @close
-        "C-g": @close
+      keybindings.delegate e, @keymap
 
     up: (e) =>
       e?.preventDefault()

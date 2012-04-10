@@ -7,8 +7,8 @@
   (:use [clojure.test])
   (:import [java.io File]))
 
-(def project-path (.getCanonicalFile (File. ".")))
-(def ignored-paths (map #(File. project-path %) ["target" "checkouts" ".git"]))
+(def project-path (.getCanonicalFile (io/file ".")))
+(def ignored-paths (map #(io/file project-path %) ["target" "checkouts" ".git"]))
 
 (with-test
     (defn inside?
@@ -46,13 +46,26 @@
               (catch AssertionError e (.getClass e))))))
 
 (defn dir [path]
-  (filter #(and (.isFile %) (inside-none? ignored-paths %))
-          (file-seq path)))
+  (map (partial relative-to project-path)
+       (filter #(and (.isFile %) (inside-none? ignored-paths %))
+               (file-seq path))))
+
+(defn subpaths [path]
+  (map (partial relative-to project-path)
+       (filter #(and (.isDirectory %) (not (= project-path %))
+                     (inside-none? ignored-paths %))
+               (file-seq path))))
+
+(defn ensure-parent [path]
+  (let [parent (.getParentFile path)]
+    (when-not (.isDirectory parent)
+      (.mkdirs parent))))
 
 (defn save-file [path content]
   (try
-    (with-open [out (io/writer (File. project-path path))]
-      (.write out content))
+    (let [fullpath (io/file project-path path)]
+      (ensure-parent fullpath)
+      (spit fullpath content))
     {:path path :success true}
     (catch Throwable e
       {:path path :success false :error (.getMessage e)})))
@@ -60,11 +73,12 @@
 (defn fs-command [msg]
   (let [result (case (:command msg)
                  "files"
-                 {:files (map (partial relative-to project-path)
-                              (dir project-path))}
+                 {:files (dir project-path)}
+                 "dirs"
+                 {:dirs (subpaths project-path)}
                  "read"
                  {:path (:path msg)
-                  :file (slurp (File. project-path (:path msg)))}
+                  :file (slurp (io/file project-path (:path msg)))}
                  "save"
                  (save-file (:path msg) (:file msg))
                  {:error "Unrecognised command."})]

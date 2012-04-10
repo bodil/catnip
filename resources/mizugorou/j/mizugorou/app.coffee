@@ -49,3 +49,8 @@ define ["jquery",
       name: "selectBuffer"
       bindKey: "Ctrl-B"
       exec: => repl.selectBuffer()
+
+    editor.commands.addCommand
+      name: "createFile"
+      bindKey: "Ctrl-Alt-F"
+      exec: => repl.createFile()

@@ -254,7 +254,7 @@ ul.repl-suggest {
     }
 }
 
-div.file-selector {
+div.filename-entry, div.file-selector {
     position: fixed;
     left: 0;
     right: 0;
@@ -262,6 +262,36 @@ div.file-selector {
     bottom: 0;
     .background-vertical-alpha();
     z-index: 2000;
+}
+
+div.filename-entry {
+    text-align: center;
+    
+    div.entry {
+        display: inline-block;
+        vertical-align: middle;
+        width: 100%;
+        color: white;
+        font-size: 40pt;
+        line-height: 1.2em;
+        text-shadow: 0 0 16px white;
+        font-weight: bold;
+    }
+
+    div.entry:focus {
+        outline: none;
+    }
+}
+
+div.filename-entry:before {
+    content: "";
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+
+div.file-selector {
+    text-align: center;
 
     div.viewport {
         position: absolute;

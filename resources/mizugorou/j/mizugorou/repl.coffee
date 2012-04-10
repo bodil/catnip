@@ -5,7 +5,8 @@
 define ["jquery", "cs!./keybindings", "./caret"
         "cs!./suggestbox", "cs!./fileselector", "ace/undomanager"
         "ace/edit_session", "ace/lib/event_emitter", "cs!./modemap"
-], ($, keybindings, caret, SuggestBox, FileSelector, undomanager, edit_session, event_emitter, modemap) ->
+        "cs!./filecreator"
+], ($, keybindings, caret, SuggestBox, FileSelector, undomanager, edit_session, event_emitter, modemap, FileCreator) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -39,6 +40,7 @@ define ["jquery", "cs!./keybindings", "./caret"
         "C-,": @saveAndTest
         "C-f": => @selectFile
         "C-b": => @selectBuffer
+        "C-M-f": => @createFile
 
       if @suggestBox
         for key of keymap
@@ -258,6 +260,8 @@ define ["jquery", "cs!./keybindings", "./caret"
     onFileSystemMessage: (msg) =>
       if msg.fs.command == "files"
         new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
+      else if msg.fs.command == "dirs"
+        new FileCreator(msg.fs.dirs).on("selected", @onNewFile)
       else if msg.fs.command == "read"
         @openBuffer(msg.fs.path, msg.fs.file)
       else if msg.fs.command == "save"
@@ -274,6 +278,12 @@ define ["jquery", "cs!./keybindings", "./caret"
         fs:
           command: "files"
 
+    createFile: (e) =>
+      e?.preventDefault()
+      @sendToSocket
+        fs:
+          command: "dirs"
+
     loadBuffer: (buffer) =>
       @sendToSocket
         fs:
@@ -283,6 +293,12 @@ define ["jquery", "cs!./keybindings", "./caret"
     onFileSelected: (e) =>
       if not e.cancelled
         @loadBuffer(e.selected)
+      else
+        @editor.focus()
+
+    onNewFile: (e) =>
+      if not e.cancelled
+        @openBuffer(e.selected, "")
       else
         @editor.focus()
 
