@@ -8,8 +8,7 @@
   (:import [java.io File]))
 
 (def project-path (.getCanonicalFile (File. ".")))
-(def target-path (File. project-path "target"))
-(def git-path (File. project-path ".git"))
+(def ignored-paths (map #(File. project-path %) ["target" "checkouts" ".git"]))
 
 (with-test
     (defn inside?
@@ -20,6 +19,14 @@
         (.startsWith absfile abspath)))
   (is (inside? (io/file "/foo/bar") (io/file "/foo/bar/gazonk.clj")))
   (is (not (inside? (io/file "/foo/bar") (io/file "/foo/gazonk.clj")))))
+
+(with-test
+    (defn inside-none?
+      "Test if a file isn't inside any one of the given paths."
+      [paths ^File file]
+      (not-any? #(inside? % file) paths))
+  (is (not (inside-none? [(io/file "/foo/bar") (io/file "/bar/foo")] (io/file "/bar/foo/quux"))))
+  (is (inside-none? [(io/file "/foo/bar") (io/file "/bar/foo")] (io/file "/quux/foo/bar"))))
 
 (with-test
     (defn relative-to
@@ -39,8 +46,7 @@
               (catch AssertionError e (.getClass e))))))
 
 (defn dir [path]
-  (filter #(and (.isFile %) (not (inside? target-path %))
-                (not (inside? git-path %)))
+  (filter #(and (.isFile %) (inside-none? ignored-paths %))
           (file-seq path)))
 
 (defn save-file [path content]
