@@ -43,6 +43,14 @@
                 (not (inside? git-path %)))
           (file-seq path)))
 
+(defn save-file [path content]
+  (try
+    (with-open [out (io/writer (File. project-path path))]
+      (.write out content))
+    {:path path :success true}
+    (catch Throwable e
+      {:path path :success false :error (.getMessage e)})))
+
 (defn fs-command [msg]
   (let [result (case (:command msg)
                  "files"
@@ -51,6 +59,8 @@
                  "read"
                  {:path (:path msg)
                   :file (slurp (File. project-path (:path msg)))}
+                 "save"
+                 (save-file (:path msg) (:file msg))
                  {:error "Unrecognised command."})]
       (assoc result :command (:command msg))))
 

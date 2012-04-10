@@ -7,6 +7,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         "ace/edit_session", "cs!./modemap"
 ], ($, keybindings, caret, SuggestBox, FileSelector, edit_session, modemap) ->
 
+  fileExtension = (path) -> path.split(".").pop()
+
   class REPL
     constructor: (@input, @display, @prompt, @editor) ->
       @input.on "keydown", @onKeyDown
@@ -29,8 +31,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         "down": @onHistoryForward
         "C-r": @focusEditor
         "tab": @complete
-        "C-s": @evalBuffer
-        "C-,": @runTests
+        "C-s": @saveBuffer
+        "C-,": @saveAndTest
         "C-f": => @sendToSocket { fs: { command: "files" } }
 
       if @suggestBox
@@ -207,6 +209,23 @@ define ["jquery", "cs!./keybindings", "./caret"
             else
               @replPrint("test-error", "No tests in #{msg.ns}.")
 
+    saveBuffer: (e) =>
+      e?.preventDefault()
+      @sendToSocket
+        fs:
+          command: "save"
+          path: @editor.getSession().bufferName
+          file: @editor.getSession().getValue()
+
+    saveAndTest: (e) =>
+      e?.preventDefault()
+      @sendToSocket
+        fs:
+          command: "save"
+          path: @editor.getSession().bufferName
+          file: @editor.getSession().getValue()
+        tag: "test"
+
     evalBuffer: (e) =>
       e?.preventDefault()
       @sendToSocket
@@ -232,11 +251,17 @@ define ["jquery", "cs!./keybindings", "./caret"
       msg
 
     onFileSystemMessage: (msg) =>
-      console.log "got message:", msg
       if msg.fs.command == "files"
         new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
       else if msg.fs.command == "read"
         @openBuffer(msg.fs.path, msg.fs.file)
+      else if msg.fs.command == "save"
+        if msg.fs.success
+          @replPrint("result", "#{msg.fs.path} saved.")
+          if fileExtension(msg.fs.path) == "clj"
+            if msg.tag == "test" then @runTests() else @evalBuffer()
+        else
+          @replPrint("error", "Save error: #{msg.fs.error}")
 
     onFileSelected: (e) =>
       if not e.cancelled
@@ -250,7 +275,6 @@ define ["jquery", "cs!./keybindings", "./caret"
     pushBufferHistory: (path) =>
       @bufferHistory = (x for x in @bufferHistory when x != path)
       @bufferHistory.unshift(path)
-      console.log @bufferHistory
 
     getBufferHistory: =>
       (x for x in @bufferHistory when @buffers[x]?)
@@ -258,14 +282,13 @@ define ["jquery", "cs!./keybindings", "./caret"
     openBuffer: (path, content) =>
       @editor.getSession()._storedCursorPos = @editor.getCursorPosition()
       filename = path.split("/").pop()
-      extension = path.split(".").pop()
       $("div.navbar a.brand").text(filename)
       window.document.title = "#{path} : Mizugorou"
       if @buffers[path]?
         session = @buffers[path]
         session.setValue(content)
       else
-        mode = modemap[extension]
+        mode = modemap[fileExtension(path)]
         session = new edit_session.EditSession(content, if mode then new mode)
         @buffers[path] = session
         session.setUseSoftTabs(true)

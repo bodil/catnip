@@ -14,14 +14,14 @@ define ["jquery",
     editor.navigateFileEnd()
 
     editor.commands.addCommand
-      name: "evalBuffer"
+      name: "saveBuffer"
       bindKey: "Ctrl-S"
-      exec: (env, args, request) -> repl.evalBuffer()
+      exec: (env, args, request) -> repl.saveBuffer()
 
     editor.commands.addCommand
-      name: "runTests"
+      name: "saveAndTest"
       bindKey: "Ctrl-,"
-      exec: (env, args, request) -> repl.runTests()
+      exec: (env, args, request) -> repl.saveAndTest()
 
     editor.commands.addCommand
       name: "focusRepl"
