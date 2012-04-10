@@ -4,13 +4,17 @@
 
 define ["jquery", "cs!./keybindings", "./caret"
         "cs!./suggestbox", "cs!./fileselector"
-        "ace/edit_session", "cs!./modemap"
-], ($, keybindings, caret, SuggestBox, FileSelector, edit_session, modemap) ->
+        "ace/edit_session", "ace/lib/event_emitter", "cs!./modemap"
+], ($, keybindings, caret, SuggestBox, FileSelector, edit_session, event_emitter, modemap) ->
+
+  EventEmitter = event_emitter.EventEmitter
 
   fileExtension = (path) -> path.split(".").pop()
 
   class REPL
     constructor: (@input, @display, @prompt, @editor) ->
+      this[key] = EventEmitter[key] for own key of EventEmitter
+
       @input.on "keydown", @onKeyDown
 
       @buffers = {}
@@ -33,7 +37,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         "tab": @complete
         "C-s": @saveBuffer
         "C-,": @saveAndTest
-        "C-f": => @sendToSocket { fs: { command: "files" } }
+        "C-f": => @selectFile
+        "C-b": => @selectBuffer
 
       if @suggestBox
         for key of keymap
@@ -263,14 +268,28 @@ define ["jquery", "cs!./keybindings", "./caret"
         else
           @replPrint("error", "Save error: #{msg.fs.error}")
 
+    selectFile: (e) =>
+      e?.preventDefault()
+      @sendToSocket
+        fs:
+          command: "files"
+
+    loadBuffer: (buffer) =>
+      @sendToSocket
+        fs:
+          command: "read"
+          path: buffer
+
     onFileSelected: (e) =>
       if not e.cancelled
-        @sendToSocket
-          fs:
-            command: "read"
-            path: e.selected
+        @loadBuffer(e.selected)
       else
         @editor.focus()
+
+    selectBuffer: (e) =>
+      e?.preventDefault()
+      list = @getBufferHistory()
+      new FileSelector(list, list).on("selected", @onFileSelected)
 
     pushBufferHistory: (path) =>
       @bufferHistory = (x for x in @bufferHistory when x != path)
@@ -299,3 +318,6 @@ define ["jquery", "cs!./keybindings", "./caret"
       if session._storedCursorPos?
         @editor.navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
       @editor.focus()
+      @_emit "openBuffer"
+        path: path
+        session: session

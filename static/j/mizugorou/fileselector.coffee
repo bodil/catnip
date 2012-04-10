@@ -67,9 +67,12 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
         cancelled: not @selected?
 
     orderByHistory: (list) =>
-      l1 = (x for x in @bufferHistory when x in list)
-      l2 = (x for x in list when x not in @bufferHistory)
-      l1.concat(l2)
+      if @bufferHistory
+        l1 = (x for x in @bufferHistory when x in list)
+        l2 = (x for x in list when x not in @bufferHistory)
+        l1.concat(l2)
+      else
+        list
 
     populateList: =>
       @list.html("")

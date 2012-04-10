@@ -4,12 +4,14 @@
 
 define ["jquery",
         "ace/ace", "ace/theme/chrome", "ace/config"
-        "cs!./repl"], ($, ace, ace_theme, config, REPL) ->
+        "cs!./repl", "cs!./buffermenu"], ($, ace, ace_theme, config, REPL, BufferMenu) ->
   $(document).ready ->
     editor = ace.edit "editor"
     editor.setTheme ace_theme
 
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor
+    new BufferMenu($("#buffer-menu"), repl)
+
     editor.focus()
     editor.navigateFileEnd()
 
@@ -39,6 +41,11 @@ define ["jquery",
       exec: (env, args, request) -> editor.splitLine()
 
     editor.commands.addCommand
-      name: "test"
+      name: "selectFile"
       bindKey: "Ctrl-F"
-      exec: => repl.sendToSocket { fs: { command: "files" } }
+      exec: => repl.selectFile()
+
+    editor.commands.addCommand
+      name: "selectBuffer"
+      bindKey: "Ctrl-B"
+      exec: => repl.selectBuffer()
