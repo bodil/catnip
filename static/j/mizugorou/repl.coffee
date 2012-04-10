@@ -3,9 +3,9 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "cs!./keybindings", "./caret"
-        "cs!./suggestbox", "cs!./fileselector"
+        "cs!./suggestbox", "cs!./fileselector", "ace/undomanager"
         "ace/edit_session", "ace/lib/event_emitter", "cs!./modemap"
-], ($, keybindings, caret, SuggestBox, FileSelector, edit_session, event_emitter, modemap) ->
+], ($, keybindings, caret, SuggestBox, FileSelector, undomanager, edit_session, event_emitter, modemap) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -309,6 +309,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       else
         mode = modemap[fileExtension(path)]
         session = new edit_session.EditSession(content, if mode then new mode)
+        session.setUndoManager(new undomanager.UndoManager())
         @buffers[path] = session
         session.setUseSoftTabs(true)
         session.setTabSize(2)
