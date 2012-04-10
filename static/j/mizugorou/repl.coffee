@@ -12,6 +12,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       @input.on "keydown", @onKeyDown
 
       @buffers = {}
+      @bufferHistory = []
 
       @history = []
       @historyPos = 0
@@ -30,7 +31,7 @@ define ["jquery", "cs!./keybindings", "./caret"
         "tab": @complete
         "C-s": @evalBuffer
         "C-,": @runTests
-        "C-space": => @sendToSocket { fs: { command: "files" } }
+        "C-f": => @sendToSocket { fs: { command: "files" } }
 
       if @suggestBox
         for key of keymap
@@ -233,7 +234,7 @@ define ["jquery", "cs!./keybindings", "./caret"
     onFileSystemMessage: (msg) =>
       console.log "got message:", msg
       if msg.fs.command == "files"
-        new FileSelector(msg.fs.files).on("selected", @onFileSelected)
+        new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
       else if msg.fs.command == "read"
         @openBuffer(msg.fs.path, msg.fs.file)
 
@@ -243,6 +244,16 @@ define ["jquery", "cs!./keybindings", "./caret"
           fs:
             command: "read"
             path: e.selected
+      else
+        @editor.focus()
+
+    pushBufferHistory: (path) =>
+      @bufferHistory = (x for x in @bufferHistory when x != path)
+      @bufferHistory.unshift(path)
+      console.log @bufferHistory
+
+    getBufferHistory: =>
+      (x for x in @bufferHistory when @buffers[x]?)
 
     openBuffer: (path, content) =>
       @editor.getSession()._storedCursorPos = @editor.getCursorPosition()
@@ -261,6 +272,7 @@ define ["jquery", "cs!./keybindings", "./caret"
         session.setTabSize(2)
         session.bufferName = path
       @editor.setSession(session)
+      @pushBufferHistory(path)
       if session._storedCursorPos?
         @editor.navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
       @editor.focus()

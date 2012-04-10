@@ -35,7 +35,7 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
     (w1, w2) -> levenshtein(filter, w1) - levenshtein(filter, w2)
 
   class FileSelector
-    constructor: (@fileSet) ->
+    constructor: (@fileSet, @bufferHistory) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
       @input = $("<input></input>").attr("type", "text")
                 .css({ position: "fixed", top: "-10000px" })
@@ -45,9 +45,8 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
       @viewport.append(@list)
       @box.append(@viewport)
       $("body").append(@box).append(@input)
-      @files = @fileSet
+      @files = @orderByHistory(@fileSet)
       @populateList()
-      @activate(0)
       $(window).on("resize", @onResize)
       @input.on("blur", @close)
             .on("keydown", @onKeyDown)
@@ -56,6 +55,7 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
       @pageSize = Math.round((@box.height() / @fileNodes[0].height()) / 2)
       @activeFilter = ""
       @selected = null
+      @activate(if @bufferHistory.length > 1 then 1 else 0)
 
     close: (e) =>
       e?.preventDefault()
@@ -66,10 +66,20 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
         selected: @selected
         cancelled: not @selected?
 
+    orderByHistory: (list) =>
+      l1 = (x for x in @bufferHistory when x in list)
+      l2 = (x for x in list when x not in @bufferHistory)
+      l1.concat(l2)
+
     populateList: =>
       @list.html("")
-      @fileNodes = @files.map (file) ->
-        $("<li></li>").text(file)
+      if @files.length
+        @fileNodes = @files.map (file) ->
+          $("<li></li>").text(file)
+      else
+        @fileNodes = [$("<li></li>").text("No files match filter ")
+          .append($("<span class=\"error\"></span>").text(@activeFilter))]
+        @files = [null]
       @list.append(file) for file in @fileNodes
 
     activate: (index) =>
@@ -110,6 +120,7 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
       else
         @files = @fileSet
         activate = @files.indexOf(lastActive)
+      @files = @orderByHistory(@files)
       @populateList()
       @activate(Math.max(activate, 0))
 
@@ -158,5 +169,5 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
 
     select: (e) =>
       e?.preventDefault()
-      @selected = @files[@active]
+      @selected = @files[@active] if @files.length and @files[@active]
       @close()

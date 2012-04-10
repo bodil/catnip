@@ -40,5 +40,5 @@ define ["jquery",
 
     editor.commands.addCommand
       name: "test"
-      bindKey: "Ctrl-Space"
+      bindKey: "Ctrl-F"
       exec: => repl.sendToSocket { fs: { command: "files" } }
