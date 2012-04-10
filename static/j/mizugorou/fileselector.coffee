@@ -21,18 +21,61 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
     m = t.length
     return m if n is 0
     return n if m is 0
-    d       = []
-    d[i]    = [] for i in [0..n]
+    d = ([] for i in [0..n])
     d[i][0] = i  for i in [0..n]
     d[0][j] = j  for j in [0..m]
-    for c1, i in s
-      for c2, j in t
+    for c1, i in s.toLowerCase()
+      for c2, j in t.toLowerCase()
         cost = if c1 is c2 then 0 else 1
         d[i+1][j+1] = Math.min d[i][j+1]+1, d[i+1][j]+1, d[i][j] + cost
     d[n][m]
 
   levenshteinSorter = (filter) ->
-    (w1, w2) -> levenshtein(filter, w1) - levenshtein(filter, w2)
+    filter = filter.toLowerCase()
+    (w1, w2) ->
+      w1 = w1.toLowerCase()
+      w2 = w2.toLowerCase()
+      o1 = w1.indexOf(filter)
+      o2 = w2.indexOf(filter)
+      # consecutive hits always beat non-consecutive
+      if o1 >= 0 and o2 < 0
+        -1
+      else if o1 < 0 and o2 >= 0
+        1
+      else
+        # use Levenshtein distance if both or none are consecutive
+        levenshtein(filter, w1) - levenshtein(filter, w2)
+
+  dumbHtmlEscape =
+    "<": "&lt;"
+    ">": "&gt;"
+    "&": "&amp;"
+
+  quickEscape = (s) -> ((dumbHtmlEscape[c] or c) for c in s).join("")
+
+  highlightFilter = (node, content, filter) ->
+    if not filter # no filter -> quick passthrough
+      node.text(content)
+    else
+      whole = content.toLowerCase().indexOf(filter.toLowerCase())
+      out = ""
+      if whole < 0 # highlight each letter as they occur
+        for c in content
+          if not filter
+            out += dumbHtmlEscape[c] or c
+          else
+            if c.toLowerCase() == filter[0].toLowerCase()
+              out += "<span class=\"filter\">" + (dumbHtmlEscape[c] or c) + "</span>"
+              filter = filter[1..]
+            else
+              out += dumbHtmlEscape[c] or c
+      else # filter occurs consecutively -> keep highlights together
+        hit = content[whole...(whole + filter.length)]
+        out += quickEscape(content[...whole])
+        out += "<span class=\"filter\">" + quickEscape(hit) + "</span>"
+        out += quickEscape(content[(whole + filter.length)..])
+      node.html(out)
+
 
   class FileSelector
     constructor: (@fileSet, @bufferHistory) ->
@@ -77,11 +120,11 @@ define ["jquery", "cs!mizugorou/keybindings", "ace/lib/event_emitter"
     populateList: =>
       @list.html("")
       if @files.length
-        @fileNodes = @files.map (file) ->
-          $("<li></li>").text(file)
+        @fileNodes = @files.map (file) =>
+          highlightFilter($("<li></li>"), file, @activeFilter)
       else
         @fileNodes = [$("<li></li>").text("No files match filter ")
-          .append($("<span class=\"error\"></span>").text(@activeFilter))]
+          .append($("<span class=\"filter\"></span>").text(@activeFilter))]
         @files = [null]
       @list.append(file) for file in @fileNodes
 
