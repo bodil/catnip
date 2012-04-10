@@ -11,7 +11,9 @@
             [mizugorou.complete :as complete])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
-           [org.webbitserver.handler EmbeddedResourceHandler]))
+           [org.webbitserver.handler EmbeddedResourceHandler AliasHandler]
+           [java.net InetSocketAddress URI]
+           [java.util.concurrent Executors]))
 
 (defn stream [s]
   (clojure.lang.LineNumberingPushbackReader. (java.io.StringReader. s)))
@@ -88,7 +90,6 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
-  (println "Message received: " (json/read-json json))
   (let [msg (json/read-json json)
         results
         (try
@@ -111,7 +112,6 @@
               (assoc results
                 :ns (str (.data socket "ns"))
                 :tag (:tag msg))))
-      (println "Response: " (json/json-str results))
       (catch Exception e
         (let [message (with-err-str (repl/pst (repl/root-cause e)))]
           (.send socket (json/json-str
@@ -121,17 +121,22 @@
 
 (defn start [port]
   (complete/init)
-  (doto (WebServers/createWebServer port)
-    (.add "/repl"
-          (proxy [WebSocketHandler] []
-            (onOpen [c] (on-connect c))
-            (onClose [c] (on-disconnect c))
-            (onMessage [c j] (on-message c j))))
-    (.add (EmbeddedResourceHandler. "mizugorou"))
-    (.start)))
+  (let [server (WebServers/createWebServer
+                (Executors/newSingleThreadExecutor)
+                (InetSocketAddress. "127.0.0.1" port)
+                (URI/create (str "http://localhost:" port)))]
+    (doto server
+      (.add "/repl"
+            (proxy [WebSocketHandler] []
+              (onOpen [c] (on-connect c))
+              (onClose [c] (on-disconnect c))
+              (onMessage [c j] (on-message c j))))
+      (.add "/" (AliasHandler. "/index.html"))
+      (.add (EmbeddedResourceHandler. "mizugorou"))
+      (.start))
+    (.getUri server)))
 
 (defn -main [& m]
   (let [port (Integer. (get (System/getenv) "PORT" "1337"))]
-    (println "Listening on port" port)
     (start port)))
 
