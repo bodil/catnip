@@ -7,8 +7,8 @@
             [clojure.repl :as repl]
             [clojure.pprint :as pprint]
             [clojure.contrib.string :as string]
-            [complete.core :as complete]
-            [mizugorou.filesystem :as fs])
+            [mizugorou.filesystem :as fs]
+            [mizugorou.complete :as complete])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler EmbeddedResourceHandler]))
@@ -120,6 +120,7 @@
           (println message))))))
 
 (defn start [port]
+  (complete/init)
   (doto (WebServers/createWebServer port)
     (.add "/repl"
           (proxy [WebSocketHandler] []
