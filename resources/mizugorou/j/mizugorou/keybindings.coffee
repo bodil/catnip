@@ -32,12 +32,18 @@ define ->
   matchBinding = (e, binding) ->
     eventToString(e).toLowerCase() == binding.toLowerCase()
 
-  delegate = (e) ->
+  keymapLookup = (e) ->
     for i in [1...arguments.length]
       keymap = arguments[i]
       for binding, func of keymap
         if matchBinding(e, binding)
-          return func(e)
+          return func
+    null
+
+  delegate = (e) ->
+    func = keymapLookup.apply(null, arguments)
+    if func?
+      return func(e)
     for i in [1...arguments.length]
       keymap = arguments[i]
       if keymap["all"]
@@ -45,4 +51,5 @@ define ->
 
   eventToString: eventToString
   matchBinding: matchBinding
+  keymapLookup: keymapLookup
   delegate: delegate

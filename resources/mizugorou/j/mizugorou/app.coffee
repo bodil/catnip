@@ -55,3 +55,8 @@ define ["jquery",
       name: "createFile"
       bindKey: "Ctrl-Alt-F"
       exec: => repl.createFile()
+
+    editor.commands.addCommand
+      name: "complete"
+      bindKey: "Tab"
+      exec: => repl.editorTabOrComplete()

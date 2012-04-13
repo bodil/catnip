@@ -2,15 +2,23 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "mizugorou/caret"], ($, caret) ->
-  caret = require "mizugorou/caret"
+define ["jquery", "ace/lib/event_emitter"
+], ($, event_emitter) ->
+
+  EventEmitter = event_emitter.EventEmitter
 
   class SuggestBox
-    constructor: (@repl, @items, bounds) ->
+    constructor: (@items, pos) ->
+      this[key] = EventEmitter[key] for own key of EventEmitter
+
       @pageSize = 4
       @box = $('<ul class="repl-suggest"></ul>')
-      @box.css("left", bounds.left + "px")
-      @box.css("bottom", ($("body").height() - bounds.top) + "px")
+      if pos.anchor == "bottom-left"
+        @box.css("left", pos.x + "px")
+        @box.css("bottom", ($("body").height() - pos.y) + "px")
+      else if pos.anchor == "top-left"
+        @box.css("left", pos.x + "px")
+        @box.css("top", pos.y + "px")
       @itemNodes = @items.map (item) -> $("<li>#{item}</li>")
       @itemNodes.forEach (node) => @box.append(node)
       $("body").append(@box)
@@ -24,7 +32,6 @@ define ["jquery", "mizugorou/caret"], ($, caret) ->
         "down": @down
         "pageup": @pageUp
         "pagedown": @pageDown
-        "M-x": @onFocusEditor
         "all": @resuggest
 
     activate: (i) =>
@@ -40,14 +47,8 @@ define ["jquery", "mizugorou/caret"], ($, caret) ->
 
     select: (e) =>
       e?.preventDefault()
-      val = @repl.input.val()
-      caretPos = @repl.input.caret().begin
-      cmd = val[...caretPos].match(/[^\s()\[\]{},\'`~\#@]*$/)[0]
-      start = caretPos - cmd.length
-      afterCaret = val[caretPos..]
-      beforeCaret = val[...start] + @activeItem()
-      @repl.input.val(beforeCaret + afterCaret)
-      @repl.input.caret(beforeCaret.length)
+      @_emit "selected",
+        selected: @activeItem()
       @close()
 
     onClick: (e) =>
@@ -76,12 +77,8 @@ define ["jquery", "mizugorou/caret"], ($, caret) ->
     close: (e) =>
       e?.preventDefault()
       @box.remove()
-      @repl.suggestBox = null
-
-    onFocusEditor: (e) =>
-      @close()
-      @repl.onFocusEditor(e)
+      @_emit "closed"
 
     resuggest: (e) =>
+      window.setTimeout((=> @_emit("resuggest")), 10)
       @close()
-      window.setTimeout((=> @repl.complete()), 0)

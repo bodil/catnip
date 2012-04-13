@@ -10,6 +10,8 @@ define ["jquery", "cs!./keybindings", "./caret"
 
   EventEmitter = event_emitter.EventEmitter
 
+  completeRe = /[^\s()\[\]{},\'`~\#@]*$/
+
   fileExtension = (path) -> path.split(".").pop()
 
   class REPL
@@ -17,6 +19,13 @@ define ["jquery", "cs!./keybindings", "./caret"
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       @input.on "keydown", @onKeyDown
+      @editor.keyBinding.addKeyboardHandler(this)
+      @lastWasInsert = false
+      self = this
+      old_insert = @editor.insert
+      @editor.insert = ->
+        self.lastWasInsert = true
+        old_insert.apply(this, arguments)
 
       @buffers = {}
       @bufferHistory = []
@@ -54,6 +63,18 @@ define ["jquery", "cs!./keybindings", "./caret"
         for key of @suggestBox.keymap
           keymap[key] = @suggestBox.keymap[key]
       keybindings.delegate e, keymap
+
+    handleKeyboard: (data, hashId, keyString, keyCode, e) =>
+      if @suggestBox
+        if e?
+          func = keybindings.keymapLookup(e, @suggestBox.keymap)
+          if func?
+            func(e)
+            return { command: "null" }
+        @suggestBox.keymap["all"](e)
+      if not e? or not keybindings.matchBinding(e, "tab")
+        @lastWasInsert = false
+      null
 
     onSubmit: (e) =>
       cmd = @input.val()
@@ -95,13 +116,29 @@ define ["jquery", "cs!./keybindings", "./caret"
       e?.preventDefault()
       @editor.focus()
 
-    complete: (e) =>
-      e?.preventDefault()
-      if @suggestBox? then @suggestBox.close()
-      cmd = @input.val()[...@input.caret().begin].match(/[^\s()\[\]{},\'`~\#@]*$/)[0]
+    completeInEditor: =>
+      pos = @editor.getCursorPosition()
+      cmd = @editor.getSession().getLine(pos.row)[...pos.column].match(completeRe)[0]
       if cmd
         @sendToSocket
           complete: cmd
+          tag: "editor"
+        true
+      else false
+
+    editorTabOrComplete: =>
+      if @lastWasInsert and @completeInEditor() then return
+      pos = @editor.getCursorPosition()
+      @editor.getSession().indentRows(pos.row, pos.row, @editor.getSession().getTabString())
+
+    complete: (e) =>
+      e?.preventDefault()
+      if @suggestBox? then @suggestBox.close()
+      cmd = @input.val()[...@input.caret().begin].match(completeRe)[0]
+      if cmd
+        @sendToSocket
+          complete: cmd
+          tag: "repl"
 
     getCaretBounds: ->
       { begin, end } = @input.caret()
@@ -139,7 +176,46 @@ define ["jquery", "cs!./keybindings", "./caret"
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
       if msg.complete.length
-        @suggestBox = new SuggestBox this, msg.complete, @getCaretBounds()
+        if msg.tag == "repl"
+          bounds = @getCaretBounds()
+          pos =
+            x: bounds.left
+            y: bounds.top
+            anchor: "bottom-left"
+          callback = @onCompleteReplFinished
+          resuggest = @complete
+        else if msg.tag == "editor"
+          cursor = @editor.getCursorPosition()
+          coords = @editor.renderer.textToScreenCoordinates(cursor.row, cursor.column)
+          pos =
+            x: coords.pageX
+            y: coords.pageY + @editor.renderer.lineHeight
+            anchor: "top-left"
+          callback = @onCompleteEditorFinished
+          resuggest = @completeInEditor
+        @suggestBox = new SuggestBox(msg.complete, pos)
+        @suggestBox.on("selected", callback)
+        @suggestBox.on("resuggest", resuggest)
+        @suggestBox.on("closed", (=> @suggestBox = null))
+
+    onCompleteReplFinished: (e) =>
+      val = @input.val()
+      caretPos = @input.caret().begin
+      cmd = val[...caretPos].match(completeRe)[0]
+      start = caretPos - cmd.length
+      afterCaret = val[caretPos..]
+      beforeCaret = val[...start] + e.selected
+      @input.val(beforeCaret + afterCaret)
+      @input.caret(beforeCaret.length)
+      @suggestBox = null
+
+    onCompleteEditorFinished: (e) =>
+      @editor.getSelection().clearSelection()
+      pos = @editor.getCursorPosition()
+      line = @editor.getSession().getLine(pos.row)[...pos.column]
+      cmd = line.match(completeRe)[0]
+      @editor.getSelection().selectTo(pos.row, pos.column - cmd.length)
+      @editor.insert(e.selected)
 
     replPrint: (type, msg, ns) =>
       node = $("<p></p>").addClass(type)
