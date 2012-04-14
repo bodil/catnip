@@ -45,7 +45,7 @@ div.slide {
     .transform-transition(0.3s ease, opacity 0.3s ease);
 
     section {
-        width: 100%;
+        width: 96%;
         display: inline-block;
         vertical-align: middle;
     }
@@ -55,6 +55,7 @@ div.slide:before {
     content: "";
     display: inline-block;
     height: 100%;
+    width: 0;
     vertical-align: middle;
 }
 
@@ -66,7 +67,7 @@ div.slide.current-slide + div.slide {
 
 div.slide.current-slide {
     opacity: 1;
-    .transform(scale(1));
+    .transform(scale(1) translateY(0));
     .transform-transition(0.3s ease, opacity 0.3s ease);
 }
 

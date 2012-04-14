@@ -27,8 +27,8 @@ define ["jquery", "ace/lib/event_emitter"
 
     onSocketMessage: (e) =>
       # console.log "incoming msg:", e.data
-      e.message = JSON.parse(e.data)
-      @_emit "message", e
+      @_emit "message",
+        message: JSON.parse(e.data)
 
     send: (tag, msg) =>
       msg.tag = tag if tag
