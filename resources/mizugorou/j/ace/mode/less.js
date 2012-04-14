@@ -20,7 +20,7 @@
  *
  * Contributor(s):
  *      Fabian Jakobs <fabian AT ajax DOT org>
- *      Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)
+ *      John Roepke <john AT justjohn DOT us>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -39,57 +39,49 @@
 define(function(require, exports, module) {
 "use strict";
 
-var oop = require("./lib/oop");
-var dom = require("./lib/dom");
-var event = require("./lib/event");
-var EventEmitter = require("./lib/event_emitter").EventEmitter;
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var Tokenizer = require("../tokenizer").Tokenizer;
+var LessHighlightRules = require("./less_highlight_rules").LessHighlightRules;
+var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
-var ScrollBar = function(parent) {
-    this.element = dom.createElement("div");
-    this.element.className = "ace_sb";
-
-    this.inner = dom.createElement("div");
-    this.element.appendChild(this.inner);
-
-    parent.appendChild(this.element);
-
-    // in OSX lion the scrollbars appear to have no width. In this case resize
-    // the to show the scrollbar but still pretend that the scrollbar has a width
-    // of 0px
-    // in Firefox 6+ scrollbar is hidden if element has the same width as scrollbar
-    // make element a little bit wider to retain scrollbar when page is zoomed 
-    this.width = dom.scrollbarWidth(parent.ownerDocument);
-    this.element.style.width = (this.width || 15) + 5 + "px";
-
-    event.addListener(this.element, "scroll", this.onScroll.bind(this));
+var Mode = function() {
+    this.$tokenizer = new Tokenizer(new LessHighlightRules().getRules(), "i");
+    this.$outdent = new MatchingBraceOutdent();
+    this.foldingRules = new CStyleFoldMode();
 };
+oop.inherits(Mode, TextMode);
 
 (function() {
-    oop.implement(this, EventEmitter);
+    
+    this.getNextLineIndent = function(state, line, tab) {
+        var indent = this.$getIndent(line);
 
-    this.onScroll = function() {
-        this._emit("scroll", {data: this.element.scrollTop});
+        // ignore braces in comments
+        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
+        if (tokens.length && tokens[tokens.length-1].type == "comment") {
+            return indent;
+        }
+
+        var match = line.match(/^.*\{\s*$/);
+        if (match) {
+            indent += tab;
+        }
+
+        return indent;
     };
 
-    this.getWidth = function() {
-        return this.width;
+    this.checkOutdent = function(state, line, input) {
+        return this.$outdent.checkOutdent(line, input);
     };
 
-    this.setHeight = function(height) {
-        this.element.style.height = height + "px";
+    this.autoOutdent = function(state, doc, row) {
+        this.$outdent.autoOutdent(doc, row);
     };
 
-    this.setInnerHeight = function(height) {
-        this.inner.style.height = height + "px";
-    };
+}).call(Mode.prototype);
 
-    // TODO: on chrome 17+ after for small zoom levels after this function
-    // this.element.scrollTop != scrollTop which makes page to scroll up.
-    this.setScrollTop = function(scrollTop) {
-        this.element.scrollTop = scrollTop;
-    };
+exports.Mode = Mode;
 
-}).call(ScrollBar.prototype);
-
-exports.ScrollBar = ScrollBar;
 });

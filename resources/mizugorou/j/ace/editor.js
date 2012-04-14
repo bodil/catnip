@@ -316,11 +316,7 @@ var Editor = function(renderer, session) {
         this.renderer.updateCursor();
 
         if (!this.$blockScrolling) {
-            var selection = this.getSelection();
-            if (selection.isEmpty())
-                this.renderer.scrollCursorIntoView(selection.getCursor());
-            else
-                this.renderer.scrollSelectionIntoView(selection.getSelectionLead(), selection.getSelectionAnchor());
+            this.renderer.scrollCursorIntoView();
         }
 
         // move text input over the cursor
@@ -334,21 +330,29 @@ var Editor = function(renderer, session) {
     this.$updateHighlightActiveLine = function() {
         var session = this.getSession();
 
-        if (session.$highlightLineMarker) {
+        if (session.$highlightLineMarker)
             session.removeMarker(session.$highlightLineMarker);
-        }
-        session.$highlightLineMarker = null;
+        if (typeof this.$lastrow == "number")
+            this.renderer.removeGutterDecoration(this.$lastrow, "ace_gutter_active_line");
 
-        if (this.getHighlightActiveLine() && (this.getSelectionStyle() != "line" || !this.selection.isMultiLine())) {
+        session.$highlightLineMarker = null;
+        this.$lastrow = null;
+
+        if (this.getHighlightActiveLine()) {
             var cursor = this.getCursorPosition(),
                 foldLine = this.session.getFoldLine(cursor.row);
-            var range;
-            if (foldLine) {
-                range = new Range(foldLine.start.row, 0, foldLine.end.row + 1, 0);
-            } else {
-                range = new Range(cursor.row, 0, cursor.row+1, 0);
+
+            if ((this.getSelectionStyle() != "line" || !this.selection.isMultiLine())) {
+                var range;
+                if (foldLine) {
+                    range = new Range(foldLine.start.row, 0, foldLine.end.row + 1, 0);
+                } else {
+                    range = new Range(cursor.row, 0, cursor.row+1, 0);
+                }
+                session.$highlightLineMarker = session.addMarker(range, "ace_active_line", "background");
             }
-            session.$highlightLineMarker = session.addMarker(range, "ace_active_line", "background");
+
+            this.renderer.addGutterDecoration(this.$lastrow = cursor.row, "ace_gutter_active_line");
         }
     };
 
@@ -418,16 +422,7 @@ var Editor = function(renderer, session) {
     };
 
     this.onCut = function() {
-        if (this.$readOnly)
-            return;
-
-        var range = this.getSelectionRange();
-        this._emit("cut", range);
-
-        if (!this.selection.isEmpty()) {
-            this.session.remove(range);
-            this.clearSelection();
-        }
+        this.commands.exec("cut", this);
     };
 
     this.insert = function(text) {
@@ -600,6 +595,14 @@ var Editor = function(renderer, session) {
 
     this.getHighlightSelectedWord = function() {
         return this.$highlightSelectedWord;
+    };
+
+    this.setAnimatedScroll = function(shouldAnimate){
+        this.renderer.setAnimatedScroll(shouldAnimate);
+    };
+
+    this.getAnimatedScroll = function(){
+        return this.renderer.getAnimatedScroll();
     };
 
     this.setShowInvisibles = function(showInvisibles) {
@@ -1135,12 +1138,19 @@ var Editor = function(renderer, session) {
             this.$search.set(options);
 
         var range = this.$search.find(this.session);
+        var replaced = 0;
         if (!range)
-            return;
+            return replaced;
 
-        this.$tryReplace(range, replacement);
-        if (range !== null)
+        if (this.$tryReplace(range, replacement)) {
+            replaced = 1;
+        }
+        if (range !== null) {
             this.selection.setSelectionRange(range);
+            this.renderer.scrollSelectionIntoView(range.start, range.end);
+        }
+
+        return replaced;
     };
 
     this.replaceAll = function(replacement, options) {
@@ -1149,19 +1159,25 @@ var Editor = function(renderer, session) {
         }
 
         var ranges = this.$search.findAll(this.session);
+        var replaced = 0;
         if (!ranges.length)
-            return;
+            return replaced;
 
         var selection = this.getSelectionRange();
         this.clearSelection();
         this.selection.moveCursorTo(0, 0);
 
         this.$blockScrolling += 1;
-        for (var i = ranges.length - 1; i >= 0; --i)
-            this.$tryReplace(ranges[i], replacement);
+        for (var i = ranges.length - 1; i >= 0; --i) {
+            if(this.$tryReplace(ranges[i], replacement)) {
+                replaced++;
+            }
+        }
 
         this.selection.setSelectionRange(selection);
         this.$blockScrolling -= 1;
+
+        return replaced;
     };
 
     this.$tryReplace = function(range, replacement) {
@@ -1213,7 +1229,23 @@ var Editor = function(renderer, session) {
         var range = this.$search.find(this.session);
         if (range) {
             this.session.unfold(range);
-            this.selection.setSelectionRange(range); // this scrolls selection into view
+
+            this.$blockScrolling += 1;
+            this.selection.setSelectionRange(range);
+            this.$blockScrolling -= 1;
+
+            if (this.getAnimatedScroll()) {
+                var cursor = this.getCursorPosition();
+                if (!this.isRowFullyVisible(cursor.row))
+                    this.scrollToLine(cursor.row, true);
+    
+                //@todo scroll X
+                //if (!this.isColumnFullyVisible(cursor.column))
+                    //this.scrollToRow(cursor.column);
+            }
+            else {
+                this.renderer.scrollSelectionIntoView(range.start, range.end);
+            }
         }
     };
 

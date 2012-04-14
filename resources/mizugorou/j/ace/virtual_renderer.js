@@ -103,6 +103,8 @@ var VirtualRenderer = function(container, theme) {
     this.$horizScroll = true;
     this.$horizScrollAlwaysVisible = true;
 
+    this.$animatedScroll = false;
+
     this.scrollBar = new ScrollBar(container);
     this.scrollBar.addEventListener("scroll", function(e) {
         _self.session.setScrollTop(e.data);
@@ -115,6 +117,13 @@ var VirtualRenderer = function(container, theme) {
         var scrollLeft = _self.scroller.scrollLeft;
         _self.scrollLeft = scrollLeft;
         _self.session.setScrollLeft(scrollLeft);
+
+        if (scrollLeft == 0) {
+            _self.$gutter.className = "ace_gutter";
+        }
+        else {
+            _self.$gutter.className = "ace_gutter horscroll";
+        }
     });
 
     this.cursorPos = {
@@ -272,6 +281,14 @@ var VirtualRenderer = function(container, theme) {
         var availableWidth = this.$size.scrollerWidth - this.$padding * 2;
         var limit = Math.floor(availableWidth / this.characterWidth);
         return this.session.adjustWrapLimit(limit);
+    };
+
+    this.setAnimatedScroll = function(shouldAnimate){
+        this.$animatedScroll = shouldAnimate;
+    };
+
+    this.getAnimatedScroll = function() {
+        return this.$animatedScroll;
     };
 
     this.setShowInvisibles = function(showInvisibles) {
@@ -704,13 +721,46 @@ var VirtualRenderer = function(container, theme) {
         this.session.setScrollTop(row * this.lineHeight);
     };
 
+    this.STEPS = 10;
+    this.$calcSteps = function(fromValue, toValue){
+        var i = 0;
+        var l = this.STEPS;
+        var steps = [];
+
+        var func  = function(t, x_min, dx) {
+            if ((t /= .5) < 1)
+                return dx / 2 * Math.pow(t, 3) + x_min;
+            return dx / 2 * (Math.pow(t - 2, 3) + 2) + x_min;
+        };
+
+        for (i = 0; i < l; ++i)
+            steps.push(func(i / this.STEPS, fromValue, toValue - fromValue));
+        steps.push(toValue);
+
+        return steps;
+    };
+
     this.scrollToLine = function(line, center) {
         var pos = this.$cursorLayer.getPixelPosition({row: line, column: 0});
         var offset = pos.top;
         if (center)
             offset -= this.$size.scrollerHeight / 2;
 
-        this.session.setScrollTop(offset);
+        if (this.$animatedScroll && Math.abs(offset - this.scrollTop) < 10000) {
+            var _self = this;
+            var steps = _self.$calcSteps(this.scrollTop, offset);
+
+            clearInterval(this.$timer);
+            this.$timer = setInterval(function() {
+                _self.session.setScrollTop(steps.shift());
+                
+                if (!steps.length)
+                    clearInterval(_self.$timer);
+            }, 10);
+        }
+        else {
+            this.session.setScrollTop(offset);
+        }
     };
 
     this.scrollToY = function(scrollTop) {
@@ -742,6 +792,19 @@ var VirtualRenderer = function(container, theme) {
         if (deltaY > 0 && this.session.getScrollTop() + this.$size.scrollerHeight < this.layerConfig.maxHeight)
            return true;
         // todo: handle horizontal scrolling
+    };
+
+    this.pixelToScreenCoordinates = function(pageX, pageY) {
+        var canvasPos = this.scroller.getBoundingClientRect();
+
+        var col = Math.round(
+            (pageX + this.scrollLeft - canvasPos.left - this.$padding - dom.getPageScrollLeft()) / this.characterWidth
+        );
+        var row = Math.floor(
+            (pageY + this.scrollTop - canvasPos.top - dom.getPageScrollTop()) / this.lineHeight
+        );
+
+        return {row: row, column: col};
     };
 
     this.screenToTextCoordinates = function(pageX, pageY) {
@@ -835,7 +898,7 @@ var VirtualRenderer = function(container, theme) {
                 return afterLoad(module);
 
             _self._loadTheme(moduleName, function() {
-                require([theme], function(module) {
+                require([moduleName], function(module) {
                     if (_self.$themeValue !== theme)
                         return;
 
