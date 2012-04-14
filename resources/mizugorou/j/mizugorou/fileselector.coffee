@@ -98,7 +98,8 @@ define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
       @pageSize = Math.round((@box.height() / @fileNodes[0].height()) / 2)
       @activeFilter = ""
       @selected = null
-      @activate(if @bufferHistory.length > 1 then 1 else 0)
+      @box.addClass("fade-in")
+      @activate((if @bufferHistory.length > 1 then 1 else 0), 200)
       swallow = (e) -> e.preventDefault()
       @keymap =
         "up": @up
@@ -116,6 +117,9 @@ define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
 
     close: (e) =>
       e?.preventDefault()
+      @box.fadeOut 200, @delayedClose
+
+    delayedClose: =>
       @box.remove()
       @input.remove()
       $(window).off("resize", @onResize)
@@ -145,19 +149,20 @@ define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
         @files = [null]
       @list.append(file) for file in @fileNodes
 
-    activate: (index) =>
+    activate: (index, speed) =>
+      speed = speed or 50
       @active = index
       node = @fileNodes[index]
       @activeNode?.removeClass("active")
       @activeNode = node
       node.addClass("active")
       if !@repositionTimeout?
-        @onRepositionTimeout()
-        @repositionTimeout = window.setTimeout(@onRepositionTimeout, 100)
+        @onRepositionTimeout(speed)
+        @repositionTimeout = window.setTimeout(@onRepositionTimeout, speed * 2)
 
-    onRepositionTimeout: =>
+    onRepositionTimeout: (speed) =>
       @repositionTimeout = null
-      @scrollTo(@activeNode, 50)
+      @scrollTo(@activeNode, speed)
 
     scrollTo: (node, speed) =>
       nodePos = node.position().top + (node.height() / 2)

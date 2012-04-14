@@ -9,6 +9,10 @@ define ["jquery", "cs!./fileselector", "cs!./filenameentry"
     constructor: (paths) ->
       super(paths, [])
 
+    close: (e) =>
+      e?.preventDefault()
+      @delayedClose()
+
     completeSelection: =>
       if @selected
         new FilenameEntry(@selected).on "selected", (e) =>

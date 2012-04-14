@@ -43,7 +43,7 @@ define ["jquery", "ace/lib/event_emitter", "cs!./keybindings"
     close: (e) =>
       e?.preventDefault()
       @entry.off("keydown", @onKeyDown)
-      @box.remove()
+      @box.fadeOut 200, => @box.remove()
       @_emit "selected",
         selected: @selected
         cancelled: not @selected
