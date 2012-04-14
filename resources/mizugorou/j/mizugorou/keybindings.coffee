@@ -3,6 +3,8 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ->
+  completeRe = /[^\s()\[\]{},\'`~\#@]*$/
+
   specialKeys =
     8: "backspace", 9: "tab", 13: "return", 19: "pause",
     20: "capslock", 27: "esc", 32: "space", 33: "pageup",
@@ -49,6 +51,7 @@ define ->
       if keymap["all"]
         return keymap["all"](e)
 
+  completeRe: completeRe
   eventToString: eventToString
   matchBinding: matchBinding
   keymapLookup: keymapLookup
