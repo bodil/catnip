@@ -2,15 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "ace/lib/event_emitter"
-], ($, event_emitter) ->
+define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
+], ($, event_emitter, Doctip) ->
 
   EventEmitter = event_emitter.EventEmitter
 
-  class SuggestBox
-    constructor: (@items, pos) ->
-      this[key] = EventEmitter[key] for own key of EventEmitter
+  last_id = 0
+  uniqueId = -> "suggestbox-#{++last_id}"
 
+  class SuggestBox
+    constructor: (@items, pos, @namespace, @socket) ->
+      this[key] = EventEmitter[key] for own key of EventEmitter
+      @boxId = uniqueId()
       @pageSize = 4
       @box = $('<ul class="repl-suggest"></ul>')
       if pos.anchor == "bottom-left"
@@ -34,10 +37,15 @@ define ["jquery", "ace/lib/event_emitter"
         "pagedown": @pageDown
         "all": @resuggest
 
+      if @socket
+        @socket.on("message", @onSocketMessage)
+
     activate: (i) =>
       @activeNode()?.removeClass("active")
       @active = i
       @activeNode().addClass("active").scrollintoview({duration: 50})
+      if @socket
+        @socket.doc(@namespace, @activeItem(), @boxId)
 
     activeNode: =>
       @itemNodes[@active]
@@ -76,9 +84,21 @@ define ["jquery", "ace/lib/event_emitter"
 
     close: (e) =>
       e?.preventDefault()
+      if @doctip
+        @doctip.close()
+        @doctip = null
       @box.remove()
       @_emit "closed"
 
     resuggest: (e) =>
       window.setTimeout((=> @_emit("resuggest")), 10)
       @close()
+
+    onSocketMessage: (e) =>
+      msg = e.message
+      if msg.doc? and msg.tag == @boxId
+        e.stopPropagation()
+        if @doctip
+          @doctip.close()
+          @doctip = null
+        @doctip = new Doctip(msg.doc, $("#view"))

@@ -148,7 +148,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       if msg.complete.length
         cursor = @getCursorPosition()
         coords = @renderer.textToScreenCoordinates(cursor.row, cursor.column)
-        @suggestBox = new SuggestBox(msg.complete, @getCursorAnchor())
+        @suggestBox = new SuggestBox(msg.complete, @getCursorAnchor(), msg.ns, @socket)
         @suggestBox.on("selected", @insertCompletion)
         @suggestBox.on("resuggest", @complete)
         @suggestBox.on("closed", (=> @suggestBox = null))

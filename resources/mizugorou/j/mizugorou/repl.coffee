@@ -119,7 +119,7 @@ define ["jquery", "cs!./keybindings", "./caret"
           x: bounds.left
           y: bounds.top
           anchor: "bottom-left"
-        @suggestBox = new SuggestBox(msg.complete, pos)
+        @suggestBox = new SuggestBox(msg.complete, pos, msg.ns, @socket)
         @suggestBox.on("selected", @insertCompletion)
         @suggestBox.on("resuggest", @complete)
         @suggestBox.on("closed", (=> @suggestBox = null))
