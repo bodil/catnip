@@ -29,11 +29,11 @@ define ["jquery", "cs!./keybindings", "./caret"
         "down": @onHistoryForward
         "C-r": @focusEditor
         "tab": @complete
-        "C-s": @saveBuffer
-        "C-,": @saveAndTest
-        "C-f": => @selectFile
-        "C-b": => @selectBuffer
-        "C-M-f": => @createFile
+        "C-s": @editor.saveBuffer
+        "C-,": @editor.saveAndTest
+        "C-f": @editor.selectFile
+        "C-b": @editor.selectBuffer
+        "C-M-f": @editor.createFile
 
       if @suggestBox
         for key of keymap
