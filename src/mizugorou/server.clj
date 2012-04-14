@@ -81,10 +81,21 @@
            :annotation (.getMessage e)
            :line (.getLineNumber s)})))))
 
+(defn resolve-ns [socket ns]
+  (if ns (create-ns (symbol ns))
+      (if socket (.data socket "ns") (create-ns 'user))))
+
 (defn complete-string [socket s ns]
   (pprint/pprint [s ns])
-  (let [ns (if ns (create-ns (symbol ns)) (.data socket "ns"))]
+  (let [ns (resolve-ns socket ns)]
     (complete/completions s ns)))
+
+(defn document-symbol [socket s ns]
+  (let [ns (resolve-ns socket ns)]
+    (with-out-str
+      (with-bindings {#'*ns* ns}
+        (let [sym (symbol s)]
+          (eval `(clojure.repl/doc ~sym)))))))
 
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))
@@ -101,6 +112,10 @@
 
             (:complete msg)
             {:complete (complete-string socket (:complete msg) (:ns msg))}
+
+            (:doc msg)
+            {:doc (document-symbol socket (:doc msg) (:ns msg))
+             :symbol (:doc msg)}
 
             (:fs msg)
             {:fs (fs/fs-command (:fs msg))}

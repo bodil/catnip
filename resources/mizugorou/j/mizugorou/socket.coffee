@@ -68,3 +68,8 @@ define ["jquery", "ace/lib/event_emitter"
       @send tag,
         ns: namespace
         complete: word
+
+    doc: (namespace, word, tag) =>
+      @send tag,
+        ns: namespace
+        doc: word

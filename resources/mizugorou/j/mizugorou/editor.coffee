@@ -5,8 +5,8 @@
 define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         "ace/undomanager", "ace/theme/chrome", "ace/multi_select"
         "cs!./keybindings", "cs!./suggestbox", "cs!./modemap"
-        "cs!./fileselector", "cs!./filecreator"
-], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, multi_select, keybindings, SuggestBox, modemap, FileSelector, FileCreator) ->
+        "cs!./fileselector", "cs!./filecreator", "cs!./doctip"
+], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, multi_select, keybindings, SuggestBox, modemap, FileSelector, FileCreator, Doctip) ->
 
   AceEditor = ace_editor.Editor
   Renderer = virtual_renderer.VirtualRenderer
@@ -76,7 +76,15 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Ctrl-Alt-F"
         exec: => @createFile()
 
+      @commands.addCommand
+        name: "documentSymbol"
+        bindKey: "Ctrl-H"
+        exec: => @documentSymbol()
+
     keyboardDelegate: (data, hashId, keystring, keyCode, e) =>
+      if @doctip
+        @doctip.close()
+        @doctip = null
       if @suggestBox
         if e?
           func = keybindings.keymapLookup(e, @suggestBox.keymap)
@@ -122,17 +130,25 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       else if msg.fs? and msg.fs.command == "dirs"
         e.stopPropagation()
         new FileCreator(msg.fs.dirs).on("selected", @onNewFile)
+      else if msg.doc? and msg.tag == "editor"
+        e.stopPropagation()
+        @onDocumentSymbol(msg)
+
+    getCursorAnchor: =>
+      cursor = @getCursorPosition()
+      coords = @renderer.textToScreenCoordinates(cursor.row, cursor.column)
+      return {
+        x: coords.pageX
+        y: coords.pageY + @renderer.lineHeight
+        anchor: "top-left"
+      }
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
       if msg.complete.length
         cursor = @getCursorPosition()
         coords = @renderer.textToScreenCoordinates(cursor.row, cursor.column)
-        pos =
-          x: coords.pageX
-          y: coords.pageY + @renderer.lineHeight
-          anchor: "top-left"
-        @suggestBox = new SuggestBox(msg.complete, pos)
+        @suggestBox = new SuggestBox(msg.complete, @getCursorAnchor())
         @suggestBox.on("selected", @insertCompletion)
         @suggestBox.on("resuggest", @complete)
         @suggestBox.on("closed", (=> @suggestBox = null))
@@ -221,3 +237,16 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @_emit "openBuffer"
         path: path
         session: session
+
+    documentSymbol: =>
+      { row, column } = @getCursorPosition()
+      line = @session.getLine(row)
+      before = line[...column].match(keybindings.completeRe)
+      after = line[column..].match(/^[^\s()\[\]{},\'`~\#@]*/)
+      symbol = before + after
+      @socket.doc(@guessNamespace(), symbol, "editor")
+
+    onDocumentSymbol: (msg) =>
+      @doctip?.close()
+      if msg.doc
+        @doctip = new Doctip(msg.doc, $("#view"))

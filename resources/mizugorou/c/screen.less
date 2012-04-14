@@ -95,7 +95,7 @@ div.repl {
     background: #f8f8f8;
 }
 
-#editor, #repl-display p, #repl-input, #repl-prompt {
+#editor, #repl-display p, #repl-input, #repl-prompt, .doctip p {
     font-family: "Ubuntu Mono";
     font-size: 20px;
 }
@@ -274,6 +274,37 @@ ul.repl-suggest {
     li.active {
         background: #abf;
         color: white;
+    }
+}
+
+div.doctip {
+    position: fixed;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-top: 1px solid #bbb;
+    border-left: 1px solid #bbb;
+    background: white;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 3em 2em;
+    background: #ccc;
+    z-index: 2000;
+
+    p.symbol {
+        color: @pink;
+        word-wrap: break-word;
+    }
+
+    p.arguments {
+        color: @purple;
+        padding-left: 1em;
+        text-indent: -1em;
+    }
+
+    p.form, p.prelude {
+        color: @green;
+        padding-left: 1em;
+        word-wrap: break-word;
     }
 }
 
