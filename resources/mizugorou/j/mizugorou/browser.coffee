@@ -7,7 +7,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
   EventEmitter = event_emitter.EventEmitter
 
   class Browser
-    constructor: (@frame, @locationBar) ->
+    constructor: (@frame, @locationBar, @refreshButton) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
       @syncLocationBar()
 
@@ -15,6 +15,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
       @locationBar.parent("form").on "submit", (e) =>
         e.preventDefault()
         @load(@locationBar.val())
+      @refreshButton.on "click", (e) => @reload()
 
     syncLocationBar: =>
       @locationBar.val(@frame[0].src)

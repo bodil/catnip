@@ -8,7 +8,7 @@ define ["jquery", "cs!./socket", "cs!./editor"
   $(document).ready ->
     socket = new Socket()
     editor = new Editor(document.getElementById("editor"), socket)
-    window.browser = browser = new Browser $("#view"), $("#location-bar")
+    window.browser = browser = new Browser $("#view"), $("#location-bar"), $("#location-refresh")
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
     new BufferMenu($("#buffer-menu"), editor)
     editor.loadBuffer("project.clj")
