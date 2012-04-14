@@ -2,19 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery",
-        "ace/ace", "ace/theme/chrome", "ace/config"
-        "cs!./repl", "cs!./buffermenu"], ($, ace, ace_theme, config, REPL, BufferMenu) ->
+define ["jquery", "cs!./editor"
+        "cs!./repl", "cs!./buffermenu", "cs!./browser"
+], ($, Editor, REPL, BufferMenu, Browser) ->
   $(document).ready ->
-    editor = ace.edit "editor"
-    editor.setTheme ace_theme
-
-    window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor
+    editor = new Editor(document.getElementById("editor"))
+    window.browser = browser = new Browser $("#view"), $("#location-bar")
+    window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser
     new BufferMenu($("#buffer-menu"), repl)
     repl.loadBuffer("project.clj")
-
-    editor.focus()
-    editor.navigateFileEnd()
 
     editor.commands.addCommand
       name: "saveBuffer"
@@ -30,16 +26,6 @@ define ["jquery",
       name: "focusRepl"
       bindKey: "Ctrl-R"
       exec: (env, args, request) -> $("#repl-input").focus()
-
-    editor.commands.addCommand
-      name: "removetolineend"
-      bindKey: "Ctrl-K"
-      exec: (env, args, request) -> editor.removeToLineEnd()
-
-    editor.commands.addCommand
-      name: "splitLine"
-      bindKey: "Ctrl-Return"
-      exec: (env, args, request) -> editor.splitLine()
 
     editor.commands.addCommand
       name: "selectFile"

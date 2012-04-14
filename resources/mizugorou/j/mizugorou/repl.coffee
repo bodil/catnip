@@ -15,7 +15,7 @@ define ["jquery", "cs!./keybindings", "./caret"
   fileExtension = (path) -> path.split(".").pop()
 
   class REPL
-    constructor: (@input, @display, @prompt, @editor) ->
+    constructor: (@input, @display, @prompt, @editor, @browser) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       @input.on "keydown", @onKeyDown
@@ -273,6 +273,7 @@ define ["jquery", "cs!./keybindings", "./caret"
               type: "error"
             ])
         else
+          @browser.reload()
           if msg.tag != "test"
             result = @replPrint("result", "#{msg.ns} compiled successfully.")
           else
