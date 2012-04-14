@@ -8,18 +8,18 @@ define ["jquery", "ace/lib/event_emitter"
   EventEmitter = event_emitter.EventEmitter
 
   class BufferMenu
-    constructor: (@list, @repl) ->
+    constructor: (@list, @editor) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
       @attachToRepl(@repl) if @repl?
       @list.on("click", "li.item", @onClick)
       @updateList()
 
     attachToRepl: =>
-      @repl.on("openBuffer", @updateList)
+      @editor.on("openBuffer", @updateList)
 
     updateList: =>
       @list.html("")
-      @buffers = @repl.getBufferHistory()
+      @buffers = @editor.getBufferHistory()
       @nodes = @buffers.map (buffer) =>
         node = $("<li></li>").addClass("item").text(buffer)
         @list.append(node)

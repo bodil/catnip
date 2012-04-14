@@ -3,10 +3,8 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "cs!./keybindings", "./caret"
-        "cs!./suggestbox", "cs!./fileselector", "ace/undomanager"
-        "ace/edit_session", "ace/lib/event_emitter", "cs!./modemap"
-        "cs!./filecreator"
-], ($, keybindings, caret, SuggestBox, FileSelector, undomanager, edit_session, event_emitter, modemap, FileCreator) ->
+        "cs!./suggestbox", "ace/lib/event_emitter"
+], ($, keybindings, caret, SuggestBox, event_emitter) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -17,9 +15,6 @@ define ["jquery", "cs!./keybindings", "./caret"
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       @input.on "keydown", @onKeyDown
-
-      @buffers = {}
-      @bufferHistory = []
 
       @history = []
       @historyPos = 0
@@ -102,20 +97,19 @@ define ["jquery", "cs!./keybindings", "./caret"
     onSocketMessage: (e) =>
       msg = e.message
       if msg.ns
-        @prompt.text(msg.ns)
-        e.stopPropagation()
+         @prompt.text(msg.ns)
       if msg.error?
+        e.stopPropagation()
         @onErrorMessage msg
-        e.stopPropagation()
       else if msg.complete? and msg.tag == "repl"
+        e.stopPropagation()
         @onCompleteMessage msg
+      else if msg.fs? and msg.fs.command == "save"
         e.stopPropagation()
-      else if msg.fs?
-        @onFileSystemMessage msg
-        e.stopPropagation()
+        @onSaveBuffer msg
       else if msg.eval?
-        @onEvalMessage msg
         e.stopPropagation()
+        @onEvalMessage msg
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
@@ -230,25 +224,6 @@ define ["jquery", "cs!./keybindings", "./caret"
             else
               @replPrint("test-error", "No tests in #{msg.ns}.")
 
-    saveBuffer: (e) =>
-      e?.preventDefault()
-      session = @editor.getSession()
-      @socket.saveBuffer(session.bufferName, session.getValue())
-
-    saveAndTest: (e) =>
-      e?.preventDefault()
-      session = @editor.getSession()
-      @socket.saveBuffer(session.bufferName, session.getValue(), "test")
-
-    evalBuffer: (e) =>
-      e?.preventDefault()
-      @socket.eval(@editor.getSession().getValue(), "compile")
-
-    runTests: (e) =>
-      e?.preventDefault()
-      form = @editor.getSession().getValue() + "\n(clojure.test/run-tests)"
-      @socket.eval(form, "test")
-
     correctLines: (msg) =>
       lines = (l.trim() for l in @editor.getSession().getValue().split("\n"))
       lines = ((if l[0] == ";" then "" else l) for l in lines)
@@ -261,77 +236,10 @@ define ["jquery", "cs!./keybindings", "./caret"
         i.line = closest(i.line) + 1
       msg
 
-    onFileSystemMessage: (msg) =>
-      if msg.fs.command == "files"
-        new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
-      else if msg.fs.command == "dirs"
-        new FileCreator(msg.fs.dirs).on("selected", @onNewFile)
-      else if msg.fs.command == "read"
-        @openBuffer(msg.fs.path, msg.fs.file)
-      else if msg.fs.command == "save"
-        if msg.fs.success
-          @replPrint("result", "#{msg.fs.path} saved.")
-          if fileExtension(msg.fs.path) == "clj" and msg.fs.path != "project.clj"
-            if msg.tag == "test" then @runTests() else @evalBuffer()
-        else
-          @replPrint("error", "Save error: #{msg.fs.error}")
-
-    selectFile: (e) =>
-      e?.preventDefault()
-      @socket.files()
-
-    createFile: (e) =>
-      e?.preventDefault()
-      @socket.dirs()
-
-    loadBuffer: (buffer) =>
-      @socket.readFile(buffer)
-
-    onFileSelected: (e) =>
-      if not e.cancelled
-        @loadBuffer(e.selected)
+    onSaveBuffer: (msg) =>
+      if msg.fs.success
+        @replPrint("result", "#{msg.fs.path} saved.")
+        if fileExtension(msg.fs.path) == "clj" and msg.fs.path != "project.clj"
+          if msg.tag == "test" then @editor.runTests() else @editor.evalBuffer()
       else
-        @editor.focus()
-
-    onNewFile: (e) =>
-      if not e.cancelled
-        @openBuffer(e.selected, "")
-      else
-        @editor.focus()
-
-    selectBuffer: (e) =>
-      e?.preventDefault()
-      list = @getBufferHistory()
-      new FileSelector(list, list).on("selected", @onFileSelected)
-
-    pushBufferHistory: (path) =>
-      @bufferHistory = (x for x in @bufferHistory when x != path)
-      @bufferHistory.unshift(path)
-
-    getBufferHistory: =>
-      (x for x in @bufferHistory when @buffers[x]?)
-
-    openBuffer: (path, content) =>
-      @editor.getSession()._storedCursorPos = @editor.getCursorPosition()
-      filename = path.split("/").pop()
-      $("div.navbar a.brand").text(filename)
-      window.document.title = "#{path} : Mizugorou"
-      if @buffers[path]?
-        session = @buffers[path]
-        session.setValue(content)
-      else
-        mode = modemap[fileExtension(path)]
-        session = new edit_session.EditSession(content, if mode then new mode)
-        session.setUndoManager(new undomanager.UndoManager())
-        @buffers[path] = session
-        session.setUseSoftTabs(true)
-        session.setTabSize(2)
-        session.bufferName = path
-      @editor.setSession(session)
-      @pushBufferHistory(path)
-      if session._storedCursorPos?
-        @editor.navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
-      @editor.focus()
-      @_emit "openBuffer"
-        path: path
-        session: session
+        @replPrint("error", "Save error: #{msg.fs.error}")

@@ -2,16 +2,23 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "ace/editor", "ace/virtual_renderer"
-        "ace/theme/chrome", "cs!./keybindings", "cs!./suggestbox"
-], ($, ace_editor, virtual_renderer, theme_chrome, keybindings, SuggestBox) ->
+define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
+        "ace/undomanager", "ace/theme/chrome"
+        "cs!./keybindings", "cs!./suggestbox", "cs!./modemap"
+        "cs!./fileselector", "cs!./filecreator"
+], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, keybindings, SuggestBox, modemap, FileSelector, FileCreator) ->
 
   AceEditor = ace_editor.Editor
   Renderer = virtual_renderer.VirtualRenderer
 
+  fileExtension = (path) -> path.split(".").pop()
+
   class Editor extends AceEditor
     constructor: (element, @socket) ->
       super(new Renderer(element, theme_chrome))
+
+      @buffers = {}
+      @bufferHistory = []
 
       $(window).on("resize", (=> @resize()))
       @resize()
@@ -25,17 +32,47 @@ define ["jquery", "ace/editor", "ace/virtual_renderer"
       @commands.addCommand
         name: "removetolineend"
         bindKey: "Ctrl-K"
-        exec: (env, args, request) => @removeToLineEnd()
+        exec: => @removeToLineEnd()
 
       @commands.addCommand
         name: "splitLine"
         bindKey: "Ctrl-Return"
-        exec: (env, args, request) => @splitLine()
+        exec: => @splitLine()
 
       @commands.addCommand
         name: "tabOrComplete"
         bindKey: "Tab"
-        exec: (env, args, request) => @tabOrComplete()
+        exec: => @tabOrComplete()
+
+      @commands.addCommand
+        name: "saveBuffer"
+        bindKey: "Ctrl-S"
+        exec: => @saveBuffer()
+
+      @commands.addCommand
+        name: "saveAndTest"
+        bindKey: "Ctrl-,"
+        exec: => @saveAndTest()
+
+      @commands.addCommand
+        name: "focusRepl"
+        bindKey: "Ctrl-R"
+        exec: (env, args, request) -> $("#repl-input").focus()
+
+      @commands.addCommand
+        name: "selectFile"
+        bindKey: "Ctrl-F"
+        exec: => @selectFile()
+
+      @commands.addCommand
+        name: "selectBuffer"
+        bindKey: "Ctrl-B"
+        exec: => @selectBuffer()
+
+      @commands.addCommand
+        name: "createFile"
+        bindKey: "Ctrl-Alt-F"
+        exec: => @createFile()
 
     keyboardDelegate: (data, hashId, keystring, keyCode, e) =>
       if @suggestBox
@@ -70,8 +107,17 @@ define ["jquery", "ace/editor", "ace/virtual_renderer"
     onSocketMessage: (e) =>
       msg = e.message
       if msg.complete? and msg.tag == "editor"
-        @onCompleteMessage msg
         e.stopPropagation()
+        @onCompleteMessage msg
+      else if msg.fs? and msg.fs.command == "read"
+        e.stopPropagation()
+        @openBuffer(msg.fs.path, msg.fs.file)
+      else if msg.fs? and msg.fs.command == "files"
+        e.stopPropagation()
+        new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
+      else if msg.fs? and msg.fs.command == "dirs"
+        e.stopPropagation()
+        new FileCreator(msg.fs.dirs).on("selected", @onNewFile)
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
@@ -94,3 +140,80 @@ define ["jquery", "ace/editor", "ace/virtual_renderer"
       cmd = line.match(keybindings.completeRe)[0]
       @selection.selectTo(pos.row, pos.column - cmd.length)
       @insert(e.selected)
+
+    saveBuffer: (e) =>
+      e?.preventDefault()
+      @socket.saveBuffer(@session.bufferName, @session.getValue())
+
+    saveAndTest: (e) =>
+      e?.preventDefault()
+      @socket.saveBuffer(@session.bufferName, @session.getValue(), "test")
+
+    evalBuffer: (e) =>
+      e?.preventDefault()
+      @socket.eval(@session.getValue(), "compile")
+
+    runTests: (e) =>
+      e?.preventDefault()
+      form = @session.getValue() + "\n(clojure.test/run-tests)"
+      @socket.eval(form, "test")
+
+    selectFile: (e) =>
+      e?.preventDefault()
+      @socket.files()
+
+    createFile: (e) =>
+      e?.preventDefault()
+      @socket.dirs()
+
+    loadBuffer: (buffer) =>
+      @socket.readFile(buffer)
+
+    onFileSelected: (e) =>
+      if not e.cancelled
+        @loadBuffer(e.selected)
+      else
+        @focus()
+
+    onNewFile: (e) =>
+      if not e.cancelled
+        @openBuffer(e.selected, "")
+      else
+        @focus()
+
+    selectBuffer: (e) =>
+      e?.preventDefault()
+      list = @getBufferHistory()
+      new FileSelector(list, list).on("selected", @onFileSelected)
+
+    pushBufferHistory: (path) =>
+      @bufferHistory = (x for x in @bufferHistory when x != path)
+      @bufferHistory.unshift(path)
+
+    getBufferHistory: =>
+      (x for x in @bufferHistory when @buffers[x]?)
+
+    openBuffer: (path, content) =>
+      @session._storedCursorPos = @getCursorPosition()
+      filename = path.split("/").pop()
+      $("div.navbar a.brand").text(filename)
+      window.document.title = "#{path} : Mizugorou"
+      if @buffers[path]?
+        session = @buffers[path]
+        session.setValue(content)
+      else
+        mode = modemap[fileExtension(path)]
+        session = new edit_session.EditSession(content, if mode then new mode)
+        session.setUndoManager(new undomanager.UndoManager())
+        @buffers[path] = session
+        session.setUseSoftTabs(true)
+        session.setTabSize(2)
+        session.bufferName = path
+      @setSession(session)
+      @pushBufferHistory(path)
+      if session._storedCursorPos?
+        @navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
+      @focus()
+      @_emit "openBuffer"
+        path: path
+        session: session

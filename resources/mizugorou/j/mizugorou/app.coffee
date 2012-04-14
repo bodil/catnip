@@ -10,35 +10,5 @@ define ["jquery", "cs!./socket", "cs!./editor"
     editor = new Editor(document.getElementById("editor"), socket)
     window.browser = browser = new Browser $("#view"), $("#location-bar")
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
-    new BufferMenu($("#buffer-menu"), repl)
-    repl.loadBuffer("project.clj")
-
-    editor.commands.addCommand
-      name: "saveBuffer"
-      bindKey: "Ctrl-S"
-      exec: (env, args, request) -> repl.saveBuffer()
-
-    editor.commands.addCommand
-      name: "saveAndTest"
-      bindKey: "Ctrl-,"
-      exec: (env, args, request) -> repl.saveAndTest()
-
-    editor.commands.addCommand
-      name: "focusRepl"
-      bindKey: "Ctrl-R"
-      exec: (env, args, request) -> $("#repl-input").focus()
-
-    editor.commands.addCommand
-      name: "selectFile"
-      bindKey: "Ctrl-F"
-      exec: => repl.selectFile()
-
-    editor.commands.addCommand
-      name: "selectBuffer"
-      bindKey: "Ctrl-B"
-      exec: => repl.selectBuffer()
-
-    editor.commands.addCommand
-      name: "createFile"
-      bindKey: "Ctrl-Alt-F"
-      exec: => repl.createFile()
+    new BufferMenu($("#buffer-menu"), editor)
+    editor.loadBuffer("project.clj")
