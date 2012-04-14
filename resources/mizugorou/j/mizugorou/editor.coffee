@@ -92,12 +92,14 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @lastWasInsert = true
       super
 
+    guessNamespace: =>
+      @session.getValue().match(/^\s*\(\s*ns\s+([^\s)]+)/m)?[1]
+
     complete: =>
       pos = @getCursorPosition()
       cmd = @session.getLine(pos.row)[...pos.column].match(keybindings.completeRe)[0]
       if cmd
-        # FIXME: Detect buffer's namespace
-        @socket.complete(null, cmd, "editor")
+        @socket.complete(@guessNamespace(), cmd, "editor")
         true
       else false
 

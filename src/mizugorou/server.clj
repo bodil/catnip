@@ -82,7 +82,9 @@
            :line (.getLineNumber s)})))))
 
 (defn complete-string [socket s ns]
-  (complete/completions s (or ns (.data socket "ns"))))
+  (pprint/pprint [s ns])
+  (let [ns (if ns (create-ns (symbol ns)) (.data socket "ns"))]
+    (complete/completions s ns)))
 
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))
