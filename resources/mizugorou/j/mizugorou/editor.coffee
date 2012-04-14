@@ -3,19 +3,21 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
-        "ace/undomanager", "ace/theme/chrome"
+        "ace/undomanager", "ace/theme/chrome", "ace/multi_select"
         "cs!./keybindings", "cs!./suggestbox", "cs!./modemap"
         "cs!./fileselector", "cs!./filecreator"
-], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, keybindings, SuggestBox, modemap, FileSelector, FileCreator) ->
+], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, multi_select, keybindings, SuggestBox, modemap, FileSelector, FileCreator) ->
 
   AceEditor = ace_editor.Editor
   Renderer = virtual_renderer.VirtualRenderer
+  MultiSelect = multi_select.MultiSelect
 
   fileExtension = (path) -> path.split(".").pop()
 
   class Editor extends AceEditor
     constructor: (element, @socket) ->
       super(new Renderer(element, theme_chrome))
+      new MultiSelect(this)
 
       @buffers = {}
       @bufferHistory = []
@@ -102,7 +104,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     tabOrComplete: =>
       if @lastWasInsert and @complete() then return
       pos = @getCursorPosition()
-      @session.indentRows(pos.row, pos.row, @session.getTabString())
+      @indent()
 
     onSocketMessage: (e) =>
       msg = e.message

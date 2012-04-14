@@ -17,7 +17,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
         @load(@locationBar.val())
 
     syncLocationBar: =>
-      @locationBar.val(@frame[0].contentWindow.location.href)
+      @locationBar.val(@frame[0].src)
 
     load: (url) =>
       if not url.match(/^\w+:\/\//i)
@@ -25,4 +25,4 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
       @frame[0].src = url
 
     reload: =>
-      @frame[0].src = @frame[0].src
+      @frame[0].src = @frame[0].src if @frame[0].src

@@ -241,5 +241,7 @@ define ["jquery", "cs!./keybindings", "./caret"
         @replPrint("result", "#{msg.fs.path} saved.")
         if fileExtension(msg.fs.path) == "clj" and msg.fs.path != "project.clj"
           if msg.tag == "test" then @editor.runTests() else @editor.evalBuffer()
+        else
+          @browser.reload()
       else
         @replPrint("error", "Save error: #{msg.fs.error}")
