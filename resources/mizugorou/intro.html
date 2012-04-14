@@ -4,15 +4,28 @@
     <title>Mizugorou</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet/less" type="text/css" href="/c/intro.less">
-    <script type="text/javascript" src="/j/less.js"></script>
+    <style>body { opacity: 0; }</style>
+    <script type="text/javascript">
+      var require = {
+        baseUrl: "/j",
+        priority: [
+          "/j/less.js",
+          "/j/jquery/jquery.js"
+        ],
+        deps: [
+          "cs!slideshow"
+        ]
+      };
+    </script>
+    <script type="text/javascript" src="/j/require.js"></script>
   </head>
   <body>
-    <div class="container">
-      <div class="body">
+    <div class="slide" id="intro-slide">
+      <section>
         <h1>Clo<em>j</em>ure for the Web</h1>
         <h2>Bodil Stokke</h2>
         <p class="twitter"><a href="http://twitter.com/bodiltv" target="_blank">@bodiltv</a></p>
-      </div>
+      </section>
     </div>
   </body>
 </html>

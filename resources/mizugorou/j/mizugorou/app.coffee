@@ -15,4 +15,26 @@ define ["jquery", "cs!./socket", "cs!./editor"
 
     $(window).on "keydown", (e) ->
       if keybindings.matchBinding e, "C-r"
-        @repl.focusEditor(e)
+        repl.focusEditor(e)
+      else if keybindings.matchBinding e, "C-s"
+        editor.saveBuffer(e)
+      else if not $(window.document.body).hasClass("presentation-mode")
+          if keybindings.matchBinding e, "C-p"
+            e.preventDefault()
+            $(window.document.body).addClass("presentation-mode")
+            editor.blur()
+            repl.input.blur()
+      else
+        keybindings.delegate e,
+          "pagedown": browser.nextSlide
+          "down": browser.nextSlide
+          "right": browser.nextSlide
+          "space": browser.nextSlide
+          "pageup": browser.previousSlide
+          "up": browser.previousSlide
+          "left": browser.previousSlide
+          "backspace": browser.previousSlide
+          "C-p": (e) ->
+            e.preventDefault()
+            $(window.document.body).removeClass("presentation-mode")
+            editor.focus()

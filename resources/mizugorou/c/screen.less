@@ -82,6 +82,25 @@ div.right-pane {
     bottom: 6pt;
     left: 50%;
     right: 0;
+    z-index: 1337;
+    .transition(margin 1s ease);
+}
+
+div.navbar, div.left-pane, .ace_cursor {
+    opacity: 1;
+    .transition(opacity 1s ease);
+}
+
+body.presentation-mode {
+    div.navbar, div.left-pane, .ace_cursor {
+        opacity: 0;
+        .transition(opacity 1s ease);
+    }
+
+    div.right-pane {
+        margin: -36pt -6pt 0 -50%;
+        .transition(margin 1s ease);
+    }
 }
 
 #editor {
@@ -96,7 +115,7 @@ div.right-pane {
 div.repl {
     position: absolute;
     height: 131pt;
-    bottom: 0;
+    bottom: -2px;
     left: 12pt;
     right: 6pt;
     background: #f8f8f8;

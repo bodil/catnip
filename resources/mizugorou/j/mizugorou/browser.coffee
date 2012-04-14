@@ -27,3 +27,11 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
 
     reload: =>
       @frame[0].src = @frame[0].src if @frame[0].src
+
+    nextSlide: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("nextSlide", "*")
+
+    previousSlide: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("previousSlide", "*")

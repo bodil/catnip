@@ -4,65 +4,102 @@
 
 @import "../bootstrap/less/bootstrap.less";
 
+.transform(@rule) {
+    -webkit-transform: @rule;
+    -moz-transform: @rule;
+    -ms-transform: @rule;
+    -o-transform: @rule;
+    transform: @rule;
+}
+
+.transform-transition(@transitionRule, @rule) {
+    -webkit-transition: -webkit-transform @transitionRule, @rule;
+    -moz-transition: -moz-transform @transitionRule, @rule;
+    -ms-transition: -ms-transform @transitionRule, @rule;
+    -o-transition: -o-transform @transitionRule, @rule;
+    transition: transform @transitionRule, @rule;
+}
+
 html {
-  height: 100%;
+    height: 100%;
 }
 
 body {
-  height: 100%;
-  background: #ccc;
-  font-family: Ubuntu;
-  text-align: center;
-  #gradient > .vertical-three-colors(#ccc, #eee, 30%, #fff);
+    opacity: 1;
+    .transition(opacity 1s ease);
+    height: 100%;
+    background: #ccc;
+    font-family: Ubuntu;
+    text-align: center;
+    overflow: hidden;
+    #gradient > .vertical-three-colors(#ccc, #eee, 30%, #fff);
 }
 
-div.container {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  bottom: 0;
-  background: url(/m/clojure-glyph.svg) no-repeat fixed 50%;
-  
-  div.body {
+div.slide {
+    position: absolute;
     width: 100%;
-    display: inline-block;
-    vertical-align: middle;
-  }
+    top: 0;
+    bottom: 0;
+    opacity: 0;
+    .transform(scale(0.5) translateY(-100%));
+    .transform-transition(0.3s ease, opacity 0.3s ease);
+
+    section {
+        width: 100%;
+        display: inline-block;
+        vertical-align: middle;
+    }
 }
 
-div.container:before {
-  content: "";
-  display: inline-block;
-  height: 100%;
-  vertical-align: middle;
+div.slide:before {
+    content: "";
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+
+div.slide.current-slide + div.slide {
+    opacity: 0;
+    .transform(scale(0.5) translateY(100%));
+    .transform-transition(0.3s ease, opacity 0.3s ease);
+}
+
+div.slide.current-slide {
+    opacity: 1;
+    .transform(scale(1));
+    .transform-transition(0.3s ease, opacity 0.3s ease);
 }
 
 h1 {
-  font-size: 44pt;
-  text-shadow: 1px 1px 2px white;
-  border-bottom: 2px groove white;
-  padding-bottom: 2pt;
-  margin-bottom: 0.5em;
-  
-  em {
-    margin-left: -0.05em;
-    margin-right: 0.13em;
-  }
+    font-size: 44pt;
+    text-shadow: 1px 1px 2px white;
+    border-bottom: 2px groove white;
+    padding-bottom: 2pt;
+    margin-bottom: 0.5em;
+    
+    em {
+        margin-left: -0.05em;
+        margin-right: 0.13em;
+    }
 }
 
 h2 {
-  font-size: 32pt;
-  text-shadow: 1px 1px 2px white;
+    font-size: 32pt;
+    text-shadow: 1px 1px 2px white;
 }
 
 p.twitter {
-  margin-top: 8pt;
-  
-  a {
-    font-size: 28pt;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px white;
-    color: #116;
-    text-decoration: underline;
-  }
+    margin-top: 8pt;
+    
+    a {
+        font-size: 28pt;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px white;
+        color: #116;
+        text-decoration: underline;
+    }
+}
+
+#intro-slide {
+    background: url("/m/clojure-glyph.svg") no-repeat fixed 50%;
 }
