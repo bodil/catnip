@@ -22,7 +22,7 @@ define [
   "json": json.Mode
   "html": html.Mode
   "css": css.Mode
-  "less": css.Mode
+  "less": scss.Mode
   "scss": scss.Mode
   "java": java.Mode
   "md": md.Mode
