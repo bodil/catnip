@@ -2,13 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "cs!./editor"
+define ["jquery", "cs!./socket", "cs!./editor"
         "cs!./repl", "cs!./buffermenu", "cs!./browser"
-], ($, Editor, REPL, BufferMenu, Browser) ->
+], ($, Socket, Editor, REPL, BufferMenu, Browser) ->
   $(document).ready ->
-    editor = new Editor(document.getElementById("editor"))
+    socket = new Socket()
+    editor = new Editor(document.getElementById("editor"), socket)
     window.browser = browser = new Browser $("#view"), $("#location-bar")
-    window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser
+    window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
     new BufferMenu($("#buffer-menu"), repl)
     repl.loadBuffer("project.clj")
 

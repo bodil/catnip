@@ -15,7 +15,7 @@ define ["jquery", "cs!./keybindings", "./caret"
   fileExtension = (path) -> path.split(".").pop()
 
   class REPL
-    constructor: (@input, @display, @prompt, @editor, @browser) ->
+    constructor: (@input, @display, @prompt, @editor, @browser, @socket) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       @input.on "keydown", @onKeyDown
@@ -34,12 +34,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       @historyPos = 0
       @historyTemp = null
 
-      WebSocket = window.MozWebSocket || window.WebSocket
-      @socket = new WebSocket("ws://" + window.location.host + "/repl")
-      @socket.onopen = @onSocketOpen
-      @socket.onmessage = @onSocketMessage
-      @socketQueue = []
-      @socketOpen = false
+      @socket.on "message", @onSocketMessage
 
     onKeyDown: (e) =>
       keymap =
@@ -80,9 +75,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       cmd = @input.val()
       @input.val ""
       @pushHistory cmd
-      @sendToSocket
-        eval: cmd
-        tag: "repl"
+      @socket.eval(cmd, "repl")
 
     pushHistory: (cmd) =>
       unless @history[@history.length - 1] == cmd
@@ -120,9 +113,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       pos = @editor.getCursorPosition()
       cmd = @editor.getSession().getLine(pos.row)[...pos.column].match(completeRe)[0]
       if cmd
-        @sendToSocket
-          complete: cmd
-          tag: "editor"
+        @socket.complete(null, cmd, "editor")
         true
       else false
 
@@ -136,24 +127,14 @@ define ["jquery", "cs!./keybindings", "./caret"
       if @suggestBox? then @suggestBox.close()
       cmd = @input.val()[...@input.caret().begin].match(completeRe)[0]
       if cmd
-        @sendToSocket
-          complete: cmd
-          tag: "repl"
+        @socket.complete(null, cmd, "repl")
 
     getCaretBounds: ->
       { begin, end } = @input.caret()
       caret.getTextBoundingRect @input[0], begin, end
 
-    onSocketOpen: (e) =>
-      @socketOpen = true
-      @_emit "socketopen"
-      for msg in @socketQueue
-        @sendToSocket(msg)
-      @socketQueue = []
-
     onSocketMessage: (e) =>
-      # console.log "incoming msg:", e.data
-      msg = JSON.parse(e.data)
+      msg = e.message
       if msg.ns
         @prompt.text(msg.ns)
       if msg.error?
@@ -166,12 +147,6 @@ define ["jquery", "cs!./keybindings", "./caret"
         @onEvalMessage msg
       else
         console.log "Unknown message received:", msg
-
-    sendToSocket: (msg) =>
-      if @socketOpen
-        @socket.send(JSON.stringify(msg))
-      else
-        @socketQueue.push(msg)
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
@@ -308,32 +283,22 @@ define ["jquery", "cs!./keybindings", "./caret"
 
     saveBuffer: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        fs:
-          command: "save"
-          path: @editor.getSession().bufferName
-          file: @editor.getSession().getValue()
+      session = @editor.getSession()
+      @socket.saveBuffer(session.bufferName, session.getValue())
 
     saveAndTest: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        fs:
-          command: "save"
-          path: @editor.getSession().bufferName
-          file: @editor.getSession().getValue()
-        tag: "test"
+      session = @editor.getSession()
+      @socket.saveBuffer(session.bufferName, session.getValue(), "test")
 
     evalBuffer: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        eval: @editor.getSession().getValue()
-        tag: "compile"
+      @socket.eval(@editor.getSession().getValue(), "compile")
 
     runTests: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        eval: @editor.getSession().getValue() + "\n(clojure.test/run-tests)"
-        tag: "test"
+      form = @editor.getSession().getValue() + "\n(clojure.test/run-tests)"
+      @socket.eval(form, "test")
 
     correctLines: (msg) =>
       lines = (l.trim() for l in @editor.getSession().getValue().split("\n"))
@@ -364,21 +329,14 @@ define ["jquery", "cs!./keybindings", "./caret"
 
     selectFile: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        fs:
-          command: "files"
+      @socket.files()
 
     createFile: (e) =>
       e?.preventDefault()
-      @sendToSocket
-        fs:
-          command: "dirs"
+      @socket.dirs()
 
     loadBuffer: (buffer) =>
-      @sendToSocket
-        fs:
-          command: "read"
-          path: buffer
+      @socket.readFile(buffer)
 
     onFileSelected: (e) =>
       if not e.cancelled
