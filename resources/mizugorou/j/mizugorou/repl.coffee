@@ -191,9 +191,9 @@ define ["jquery", "cs!./keybindings", "./caret"
               type: "error"
             ])
         else
-          @browser.reload()
           if msg.tag != "test"
             result = @replPrint("result", "#{msg.ns} compiled successfully.")
+            @browser.reload()
           else
             test = msg.eval[msg.eval.length - 1]
             result = {}
@@ -205,6 +205,7 @@ define ["jquery", "cs!./keybindings", "./caret"
             else if result.fail
               "test-fail"
             else if result.pass
+              window.setTimeout (=> @browser.reload()), 1000
               "test-pass"
             if test.out
               @replPrint("out", test.out)
@@ -223,6 +224,7 @@ define ["jquery", "cs!./keybindings", "./caret"
               window.setTimeout (=> @display.removeClass(type)), 10
             else
               @replPrint("test-error", "No tests in #{msg.ns}.")
+              @browser.reload()
 
     correctLines: (msg) =>
       lines = (l.trim() for l in @editor.getSession().getValue().split("\n"))
