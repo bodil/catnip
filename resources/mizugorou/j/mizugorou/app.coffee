@@ -3,8 +3,8 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "cs!./socket", "cs!./editor"
-        "cs!./repl", "cs!./buffermenu", "cs!./browser"
-], ($, Socket, Editor, REPL, BufferMenu, Browser) ->
+        "cs!./repl", "cs!./buffermenu", "cs!./browser", "cs!./keybindings"
+], ($, Socket, Editor, REPL, BufferMenu, Browser, keybindings) ->
   $(document).ready ->
     socket = new Socket()
     editor = new Editor(document.getElementById("editor"), socket)
@@ -12,3 +12,7 @@ define ["jquery", "cs!./socket", "cs!./editor"
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
     new BufferMenu($("#buffer-menu"), editor)
     editor.loadBuffer("project.clj")
+
+    $(window).on "keydown", (e) ->
+      if keybindings.matchBinding e, "C-r"
+        @repl.focusEditor(e)
