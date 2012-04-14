@@ -10,11 +10,11 @@ define ["jquery", "ace/lib/event_emitter"
   class BufferMenu
     constructor: (@list, @editor) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
-      @attachToRepl(@repl) if @repl?
+      @attachToEditor(@editor) if @editor?
       @list.on("click", "li.item", @onClick)
       @updateList()
 
-    attachToRepl: =>
+    attachToEditor: =>
       @editor.on("openBuffer", @updateList)
 
     updateList: =>
@@ -38,8 +38,8 @@ define ["jquery", "ace/lib/event_emitter"
       index = @nodes.indexOf(e.target)
       if index < 0
         if (e.target == @openItem[0])
-          @repl.selectFile()
+          @editor.selectFile()
         else if (e.target == @newItem[0])
-          @repl.createFile()
+          @editor.createFile()
       else
-        @repl.loadBuffer(@buffers[index])
+        @editor.loadBuffer(@buffers[index])
