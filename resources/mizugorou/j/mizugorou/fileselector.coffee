@@ -78,7 +78,7 @@ define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
 
 
   class FileSelector
-    constructor: (@fileSet, @bufferHistory) ->
+    constructor: (@fileSet, @bufferHistory, filter) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
       @input = $("<input></input>").attr("type", "text")
                 .css({ position: "fixed", top: "-10000px" })
@@ -97,9 +97,10 @@ define ["jquery", "cs!./keybindings", "ace/lib/event_emitter"
       @input.focus()
       @pageSize = Math.round((@box.height() / @fileNodes[0].height()) / 2)
       @activeFilter = ""
+      @filter(filter) if filter
       @selected = null
       @box.addClass("fade-in")
-      @activate((if @bufferHistory.length > 1 then 1 else 0), 200)
+      @activate((if @bufferHistory?.length > 1 then 1 else 0), 200)
       swallow = (e) -> e.preventDefault()
       @keymap =
         "up": @up

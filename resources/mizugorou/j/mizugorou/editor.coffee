@@ -81,6 +81,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Ctrl-H"
         exec: => @documentSymbol()
 
+      @commands.addCommand
+        name: "expandSnippet"
+        bindKey: "Ctrl-I"
+        exec: => @expandSnippet()
+
     keyboardDelegate: (data, hashId, keystring, keyCode, e) =>
       if @doctip
         @doctip.close()
@@ -250,3 +255,38 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @doctip?.close()
       if msg.doc
         @doctip = new Doctip(msg.doc, $("#view"))
+
+    snippets:
+      "nsviews":
+        """
+        (ns todo15m.views
+          (:require [noir.response :as response]
+                    [monger.collection :as monger])
+          (:use [noir.core :only [defpage defpartial]]
+                [hiccup.page-helpers :only [html5 include-css]]
+                [hiccup.form-helpers])
+          (:import [org.bson.types ObjectId]))
+        """
+      "utfbox": '"\\u2610"'
+      "utfcheck": '"\\u2611"'
+      "utfdel": '"\\u267b"'
+      "cthleft": '[:img {:src "/hellocthulhu-left.png"}]'
+      "cthright": '[:img {:src "/hellocthulhu-right.png"}]'
+
+    snippetKeys: => k for own k of @snippets
+    snippet: (s) => @snippets[s]
+
+    expandSnippet: =>
+      pos = @getCursorPosition()
+      line = @session.getLine(pos.row)[...pos.column]
+      cmd = line.match(keybindings.completeRe)[0]
+      console.log cmd
+      new FileSelector(@snippetKeys(), null, cmd).on "selected", (e) =>
+        @focus()
+        if not e.cancelled
+          @selection.clearSelection()
+          pos = @getCursorPosition()
+          line = @session.getLine(pos.row)[...pos.column]
+          cmd = line.match(keybindings.completeRe)[0]
+          @selection.selectTo(pos.row, pos.column - cmd.length)
+          @insert(@snippet(e.selected))
