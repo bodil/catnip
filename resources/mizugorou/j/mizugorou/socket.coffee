@@ -26,13 +26,14 @@ define ["jquery", "ace/lib/event_emitter"
       @socketQueue = []
 
     onSocketMessage: (e) =>
-      # console.log "incoming msg:", e.data
+      console.log "incoming msg:", e.data
       @_emit "message",
         message: JSON.parse(e.data)
 
     send: (tag, msg) =>
       msg.tag = tag if tag
       if @socketOpen
+        console.log(JSON.stringify(msg))
         @socket.send(JSON.stringify(msg))
       else
         @socketQueue.push(msg)
@@ -43,6 +44,10 @@ define ["jquery", "ace/lib/event_emitter"
           command: "save"
           path: name
           file: content
+
+    compileCljs: (name, tag) =>
+      @send tag,
+        cljs: name
 
     eval: (form, tag) =>
       @send tag,

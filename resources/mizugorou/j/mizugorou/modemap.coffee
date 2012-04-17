@@ -3,7 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define [
-  "ace/mode/clojure"
+  "cs!./clojuremode"
   "ace/mode/coffee"
   "ace/mode/javascript"
   "ace/mode/json"
@@ -15,8 +15,8 @@ define [
   "ace/mode/xml"
   "ace/mode/sql"
 ], (clj, coffee, js, json, html, css, scss, java, md, xml, sql) ->
-  "clj": clj.Mode
-  "cljs": clj.Mode
+  "clj": clj
+  "cljs": clj
   "coffee": coffee.Mode
   "js": js.Mode
   "json": json.Mode

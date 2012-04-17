@@ -12,7 +12,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
       @syncLocationBar()
 
       @frame.on "load", (e) => @syncLocationBar()
-      @locationBar.parent("form").on "submit", (e) =>
+      @locationBar.parent().parent().on "submit", (e) =>
         e.preventDefault()
         @load(@locationBar.val())
       @refreshButton.on "click", (e) => @reload()

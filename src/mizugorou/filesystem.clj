@@ -3,7 +3,8 @@
 ;; You can obtain one at http://mozilla.org/MPL/2.0/.
 
 (ns mizugorou.filesystem
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [cljs.closure :as cljsc])
   (:use [clojure.test])
   (:import [java.io File]))
 
@@ -83,4 +84,18 @@
                  (save-file (:path msg) (:file msg))
                  {:error "Unrecognised command."})]
       (assoc result :command (:command msg))))
+
+(defn cljs-compile [path]
+  (let [fullpath (str (io/file project-path path))
+        outpath (str (io/file project-path "resources" "public" "cljs"))
+        outfile (str (io/file project-path "resources" "public" "cljs" "bootstrap.js"))]
+    (try
+      (with-out-str (cljsc/build path
+                                 {:output-dir outpath
+                                  :output-to outfile
+                                  :optimizations :simple
+                                  :pretty-print true}))
+      {:success true :output ""}
+      (catch Throwable e
+        {:success false :error (.getMessage e)}))))
 

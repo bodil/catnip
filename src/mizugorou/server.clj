@@ -103,12 +103,16 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
+  (println (str (json/read-json json)))
   (let [msg (json/read-json json)
         results
         (try
           (cond
             (:eval msg)
             (eval-string socket (:eval msg))
+
+            (:cljs msg)
+            (fs/cljs-compile (:cljs msg))
 
             (:complete msg)
             {:complete (complete-string socket (:complete msg) (:ns msg))}
@@ -120,7 +124,7 @@
             (:fs msg)
             {:fs (fs/fs-command (:fs msg))}
 
-            :else {:error "Bad message"})
+            :else {:error "Bad message" :msg json})
           (catch Exception e
             {:error (with-err-str (repl/pst (repl/root-cause e)))}))]
     (try
