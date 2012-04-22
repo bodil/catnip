@@ -8,7 +8,8 @@
             [clojure.pprint :as pprint]
             [clojure.contrib.string :as string]
             [mizugorou.filesystem :as fs]
-            [mizugorou.complete :as complete])
+            [mizugorou.complete :as complete]
+            [mizugorou.profile :as profile])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler EmbeddedResourceHandler AliasHandler]
@@ -111,8 +112,8 @@
             (:eval msg)
             (eval-string socket (:eval msg))
 
-            (:cljs msg)
-            (fs/cljs-compile (:cljs msg))
+            ;; (:cljs msg)
+            ;; (fs/cljs-compile (:cljs msg))
 
             (:complete msg)
             {:complete (complete-string socket (:complete msg) (:ns msg))}
@@ -124,6 +125,9 @@
             (:fs msg)
             {:fs (fs/fs-command (:fs msg))}
 
+            (:profile msg)
+            {:profile (profile/read-profile)}
+            
             :else {:error "Bad message" :msg json})
           (catch Exception e
             {:error (with-err-str (repl/pst (repl/root-cause e)))}))]

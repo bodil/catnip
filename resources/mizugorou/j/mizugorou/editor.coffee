@@ -22,11 +22,12 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @buffers = {}
       @bufferHistory = []
 
-      $(window).on("resize", (=> @resize()))
+      $(window).on "resize", => @resize()
       @resize()
       @focus()
 
       @socket.on "message", @onSocketMessage
+      @socket.profile()
 
       @keyBinding.addKeyboardHandler
         handleKeyboard: @keyboardDelegate
@@ -138,6 +139,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       else if msg.doc? and msg.tag == "editor"
         e.stopPropagation()
         @onDocumentSymbol(msg)
+      else if msg.profile?
+        @onNewProfile(msg.profile)
 
     getCursorAnchor: =>
       cursor = @getCursorPosition()
@@ -256,35 +259,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       if msg.doc
         @doctip = new Doctip(msg.doc, $("#view"))
 
+    onNewProfile: (profile) =>
+      @snippets = profile.snippets
+
     snippets:
-      "nsviews":
-        """
-        (ns cthulhu.views
-          (:require [noir.response :as response]
-                    [monger.collection :as monger])
-          (:use [noir.core :only [defpage defpartial]]
-                [noir.fetch.remotes :only [defremote]]
-                [hiccup.page :only [html5 include-css]]
-                [hiccup.form])
-          (:import [org.bson.types ObjectId]))
-        """
-      "nsclient":
-        """
-        (ns todo15m.client
-          (:use-macros [crate.macros :only [defpartial]]
-                       [fetch.macros :only [remote]])
-          (:require [fetch.remotes :as remotes]
-                    [crate.core :as crate]
-                    [domina :as d]
-                    [domina.events :as events]
-                    [domina.css :as css]))
-        """
-      "utfbox": '"\\u2610"'
-      "utfcheck": '"\\u2611"'
-      "utfdel": '"\\u267b"'
-      "cthleft": '[:img {:src "/hellocthulhu-left.png"}]'
-      "cthright": '[:img {:src "/hellocthulhu-right.png"}]'
-      "fixid": '(defn get-goo-list []\n  (map #(assoc % :_id (str (:_id %)))\n    (monger/find-maps "goo")))\n'
+      "Snippets not yet loaded, try again later": ""
 
     snippetKeys: => k for own k of @snippets
     snippet: (s) => @snippets[s]

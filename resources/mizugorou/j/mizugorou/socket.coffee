@@ -78,3 +78,7 @@ define ["jquery", "ace/lib/event_emitter"
       @send tag,
         ns: namespace
         doc: word
+
+    profile: (tag) =>
+      @send tag,
+        profile: "read"
