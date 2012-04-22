@@ -1,4 +1,4 @@
-(defproject catnip "0.1.0"
+(defproject catnip "0.2.0-SNAPSHOT"
   :description "The irresistible Clojure IDE-in-a-plugin"
   :url "https://github.com/bodil/catnip"
   :license {:name "Mozilla Public License"
