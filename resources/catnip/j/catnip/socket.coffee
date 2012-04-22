@@ -26,7 +26,7 @@ define ["jquery", "ace/lib/event_emitter"
       @socketQueue = []
 
     onSocketMessage: (e) =>
-      console.log "incoming msg:", e.data
+      # console.log "incoming msg:", e.data
       @_emit "message",
         message: JSON.parse(e.data)
 

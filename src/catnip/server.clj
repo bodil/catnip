@@ -104,7 +104,6 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
-  (println (str (json/read-json json)))
   (let [msg (json/read-json json)
         results
         (try
@@ -141,8 +140,7 @@
         (let [message (with-err-str (repl/pst (repl/root-cause e)))]
           (.send socket (json/json-str
                         {:error "Failed to serialise response."
-                         :exception message}))
-          (println message))))))
+                         :exception message})))))))
 
 (defn start [port]
   (complete/init)
