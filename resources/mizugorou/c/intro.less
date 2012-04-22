@@ -2,31 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@import url("http://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic,700italic|Ubuntu:400,700,400italic,700italic");
 @import "../bootstrap/less/bootstrap.less";
-
-.transform(@rule) {
-    -webkit-transform: @rule;
-    -moz-transform: @rule;
-    -ms-transform: @rule;
-    -o-transform: @rule;
-    transform: @rule;
-}
-
-.transform-transition(@transitionRule, @rule) {
-    -webkit-transition: -webkit-transform @transitionRule, @rule;
-    -moz-transition: -moz-transform @transitionRule, @rule;
-    -ms-transition: -ms-transform @transitionRule, @rule;
-    -o-transition: -o-transform @transitionRule, @rule;
-    transition: transform @transitionRule, @rule;
-}
 
 html {
     height: 100%;
 }
 
 body {
-    opacity: 1;
-    .transition(opacity 1s ease);
     height: 100%;
     background: #ccc;
     font-family: Ubuntu;
@@ -35,14 +18,30 @@ body {
     #gradient > .vertical-three-colors(#ccc, #eee, 30%, #fff);
 }
 
-div.slide {
+p, dl {
+    font-size: 18pt;
+    line-height: 24pt;
+}
+
+dt, dd {
+    display: inline;
+}
+
+dd:before {
+    content: "→ ";
+}
+
+dd:after {
+    content:"\A";
+    white-space: pre;
+}
+
+div.container {
     position: absolute;
     width: 100%;
     top: 0;
     bottom: 0;
-    opacity: 0;
-    .transform(scale(0.5) translateY(-100%));
-    .transform-transition(0.3s ease, opacity 0.3s ease);
+    background: url("/m/clojure-glyph.svg") no-repeat fixed 50%;
 
     section {
         width: 96%;
@@ -51,24 +50,12 @@ div.slide {
     }
 }
 
-div.slide:before {
+div.container:before {
     content: "";
     display: inline-block;
     height: 100%;
     width: 0;
     vertical-align: middle;
-}
-
-div.slide.current-slide + div.slide {
-    opacity: 0;
-    .transform(scale(0.5) translateY(100%));
-    .transform-transition(0.3s ease, opacity 0.3s ease);
-}
-
-div.slide.current-slide {
-    opacity: 1;
-    .transform(scale(1) translateY(0));
-    .transform-transition(0.3s ease, opacity 0.3s ease);
 }
 
 h1 {
@@ -101,56 +88,6 @@ p.twitter {
     }
 }
 
-#intro-slide {
-    background: url("/m/clojure-glyph.svg") no-repeat fixed 50%;
-}
-
-#lovecraft-slide {
-    background: url("/m/slides/hp.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-#cthulhu-slide {
-    background: url("/m/slides/cthulhu.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-#nyarlathotep-slide {
-    background: url("/m/slides/nyarlathotep.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-#yog-sothoth-slide {
-    background: url("/m/slides/yogsothoth.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-#ellison-slide {
-    background: url("/m/slides/ellison.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-#puppies-slide {
-    background: url("/m/slides/puppies.jpg") no-repeat 50%;
-    background-size: contain;
-}
-
-p.caption {
-    position: absolute;
-    bottom: 1em;
-    width: 100%;
-    text-align: center;
-    background-color: rgba(255,255,255,0.6);
-    font-size: 32pt;
-    line-height: 40pt;
-    color: black;
-    font-weight: bold;
-    text-shadow: 2px 2px 2px white;
-}
-
 li {
     list-style: none;
-    font-size: 32pt;
-    line-height: 40pt;
-    font-weight: bold;
 }
