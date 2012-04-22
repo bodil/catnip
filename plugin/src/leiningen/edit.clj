@@ -6,7 +6,7 @@
 (defn- with-catnip-dep [project]
   (assoc project :dependencies
          (conj (:dependencies project)
-               '[catnip "0.1.0-SNAPSHOT"])))
+               '[catnip "0.1.0"])))
 
 (defn- start-server-form [port]
   `(let [url# (str (catnip.server/start ~port))]
