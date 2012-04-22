@@ -1,7 +1,7 @@
 ;; This is https://github.com/ninjudd/clojure-complete
 ;; hacked to compile faster.
 
-(ns mizugorou.complete
+(ns catnip.complete
   (:require [clojure.main])
   (:import [java.util.jar JarFile] [java.io File]))
 

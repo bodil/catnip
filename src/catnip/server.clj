@@ -2,14 +2,14 @@
 ;; License, v. 2.0. If a copy of the MPL was not distributed with this file,
 ;; You can obtain one at http://mozilla.org/MPL/2.0/.
 
-(ns mizugorou.server
+(ns catnip.server
   (:require [clojure.data.json :as json]
             [clojure.repl :as repl]
             [clojure.pprint :as pprint]
             [clojure.contrib.string :as string]
-            [mizugorou.filesystem :as fs]
-            [mizugorou.complete :as complete]
-            [mizugorou.profile :as profile])
+            [catnip.filesystem :as fs]
+            [catnip.complete :as complete]
+            [catnip.profile :as profile])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler EmbeddedResourceHandler AliasHandler]
@@ -157,7 +157,7 @@
               (onClose [c] (on-disconnect c))
               (onMessage [c j] (on-message c j))))
       (.add "/" (AliasHandler. "/index.html"))
-      (.add (EmbeddedResourceHandler. "mizugorou"))
+      (.add (EmbeddedResourceHandler. "catnip"))
       (.start))
     (.getUri server)))
 

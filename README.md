@@ -1,6 +1,6 @@
-# Mizugorou
+# Catnip
 
-A browser based ClojureScript IDE.
+A browser based Clojure IDE.
 
 ## Usage
 
@@ -16,7 +16,7 @@ Then, add the plugin to your ~/.lein/profiles.clj file:
 
 ```clojure
     {:user {:plugins [...
-                      [lein-mizugorou "0.1.0-SNAPSHOT"]]}}
+                      [lein-catnip "0.1.0-SNAPSHOT"]]}}
 ```
 
 You can now launch it from within your own Leiningen projects like this:

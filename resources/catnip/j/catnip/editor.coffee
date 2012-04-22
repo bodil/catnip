@@ -225,7 +225,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @session._storedCursorPos = @getCursorPosition()
       filename = path.split("/").pop()
       $("div.navbar a.brand").text(filename)
-      window.document.title = "#{path} : Mizugorou"
+      window.document.title = "#{path} : Catnip"
       if @buffers[path]?
         session = @buffers[path]
         session.setValue(content)
