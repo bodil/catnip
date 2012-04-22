@@ -4,7 +4,7 @@
 
 define [
   "cs!./clojuremode"
-  "ace/mode/coffee"
+  "cs!./coffeemode"
   "ace/mode/javascript"
   "ace/mode/json"
   "ace/mode/html"
@@ -17,7 +17,7 @@ define [
 ], (clj, coffee, js, json, html, css, scss, java, md, xml, sql) ->
   "clj": clj
   "cljs": clj
-  "coffee": coffee.Mode
+  "coffee": coffee
   "js": js.Mode
   "json": json.Mode
   "html": html.Mode
