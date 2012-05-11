@@ -10,7 +10,8 @@
             [catnip.filesystem :as fs]
             [catnip.complete :as complete]
             [catnip.profile :as profile])
-  (:use [clojure.test])
+  (:use [clojure.test]
+        [clj-info.doc2map :only [get-docs-map]])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler]
            [org.webbitserver.handler EmbeddedResourceHandler AliasHandler]
            [java.net InetSocketAddress URI]
@@ -91,12 +92,27 @@
   (let [ns (resolve-ns socket ns)]
     (complete/completions s ns)))
 
+(with-test
+  (defn map-if-key
+    "If hash contains key, apply function f to value of key."
+    [hash & args]
+    (reduce (fn [hash [key f]]
+              (if (hash key)
+                (assoc hash key (f (hash key)))
+                hash))
+            hash (partition 2 args)))
+  (is (= {:foo 5 :bar 2} (map-if-key {:foo 4 :bar 2} :foo inc)))
+  (is (= {:foo 4 :bar 2} (map-if-key {:foo 4 :bar 2} :baz inc)))
+  (is (= {:foo 5 :bar 1} (map-if-key {:foo 4 :bar 2} :foo inc :bar dec))))
+
 (defn document-symbol [socket s ns]
   (let [ns (resolve-ns socket ns)]
-    (with-out-str
-      (with-bindings {#'*ns* ns}
-        (let [sym (symbol s)]
-          (eval `(clojure.repl/doc ~sym)))))))
+    (with-bindings {#'*ns* ns}
+      (map-if-key (get-docs-map s)
+                  :ns ns-name
+                  :all-other-fqv #(map str %)
+                  :inline str
+                  :tag str))))
 
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))

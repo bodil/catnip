@@ -33,7 +33,7 @@ define ["jquery", "ace/lib/event_emitter"
     send: (tag, msg) =>
       msg.tag = tag if tag
       if @socketOpen
-        console.log(JSON.stringify(msg))
+        # console.log(JSON.stringify(msg))
         @socket.send(JSON.stringify(msg))
       else
         @socketQueue.push(msg)

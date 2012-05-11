@@ -13,6 +13,7 @@ define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
   class SuggestBox
     constructor: (@items, pos, @namespace, @socket) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
+      @closed = false
       @boxId = uniqueId()
       @pageSize = 4
       @box = $('<ul class="repl-suggest"></ul>')
@@ -84,6 +85,7 @@ define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
 
     close: (e) =>
       e?.preventDefault()
+      @closed = true
       if @doctip
         @doctip.close()
         @doctip = null
@@ -95,10 +97,11 @@ define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
       @close()
 
     onSocketMessage: (e) =>
-      msg = e.message
-      if msg.doc? and msg.tag == @boxId
-        e.stopPropagation()
-        if @doctip
-          @doctip.close()
-          @doctip = null
-        @doctip = new Doctip(msg.doc, $("#view"))
+      if not @closed
+        msg = e.message
+        if msg.doc? and msg.tag == @boxId
+          e.stopPropagation()
+          if @doctip
+            @doctip.close()
+            @doctip = null
+          @doctip = new Doctip(msg.doc, $("#view"))

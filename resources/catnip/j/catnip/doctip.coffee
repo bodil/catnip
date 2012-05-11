@@ -6,9 +6,9 @@ define ["jquery"
 ], ($) ->
 
   class Doctip
-    constructor: (text, cover) ->
+    constructor: (doc, cover) ->
       @box = $('<div></div>').addClass("doctip").hide()
-      @decorateDoc(text)
+      @renderDoc(doc)
       @box.offset(cover.offset())
       @box.width(cover.width())
       @box.height(cover.height())
@@ -21,22 +21,30 @@ define ["jquery"
       @box.fadeIn(400)
 
     close: (e) =>
-      e?.preventDefault()
-      @box.fadeOut(400, (=> @box.remove()))
+      if not e? or not $(e.target).attr("href")?
+        e?.preventDefault()
+        @box.fadeOut(400, (=> @box.remove()))
 
-    decorateDoc: (doc) ->
-      lines = doc.split("\n")
-      prelude = (lines.shift().trim() while not lines[0][0].match(/\s/))
-      prelude.shift() if prelude[0].match(/-+/)
-
-      paras = (l.trim() for l in lines).join("\n").split(/\n\n+/)
-      paras = (l.trim() for l in paras when l.trim().length)
-
+    renderDoc: (doc) ->
       pp = (type, text) -> $("<p></p>").addClass(type).text(text)
+      renderArgs = (arg) -> "(" + ([doc.name].concat(arg)).join(" ") + ")"
+      renderForm = (form) -> "(" + form.join(" ") + ")"
 
-      @box.append(pp("symbol", prelude.shift())) if prelude.length
-      @box.append(pp("arguments", prelude.shift())) if prelude.length
-      @box.append(pp("form", prelude.shift())) if prelude.length
-      @box.append(pp("prelude", prelude.shift())) while prelude.length
+      @box.append(pp("symbol", "#{doc.fqname or doc.name}"))
+      @box.append(pp("form", doc["object-type-str"]))
 
-      @box.append(pp("body", paras.shift())) while paras.length
+      if doc.arglists
+        @box.append(pp("arguments", renderArgs(arg))) for arg in doc.arglists
+      if doc.forms
+        @box.append(pp("arguments", renderForm(form))) for form in doc.forms
+
+      # @box.append(pp("prelude", prelude.shift())) while prelude.length
+
+      if doc.doc
+        lines = doc.doc.split("\n")
+        paras = (l.trim() for l in lines).join("\n").split(/\n\n+/)
+        paras = (l.trim() for l in paras when l.trim().length)
+        @box.append(pp("body", paras.shift())) while paras.length
+
+      if doc.url
+        @box.append($("<p class=\"body\">See <a target=\"_blank\" href=\"#{doc.url}\">#{doc.name}</a></p>"))
