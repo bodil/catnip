@@ -1,12 +1,11 @@
 (ns leiningen.edit
-  (:require [leiningen.core.eval :as eval])
+  (:require [leinjacker.eval-in-project :as eval]
+            [leinjacker.deps :as deps])
   (:import [java.util.concurrent CountDownLatch]
            [java.net ServerSocket]))
 
 (defn- with-catnip-dep [project]
-  (assoc project :dependencies
-         (conj (:dependencies project)
-               '[catnip "0.2.0-SNAPSHOT"])))
+  (deps/add-if-missing project '[catnip "0.2.0-SNAPSHOT"]))
 
 (defn- start-server-form [port]
   `(let [url# (str (catnip.server/start ~port))]
