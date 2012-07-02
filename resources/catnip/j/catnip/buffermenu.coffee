@@ -21,18 +21,18 @@ define ["jquery", "ace/lib/event_emitter"
       @list.html("")
       @buffers = @editor.getBufferHistory()
       @nodes = @buffers.map (buffer) =>
-        node = $("<li></li>").addClass("item").text(buffer)
+        node = $("<li></li>").addClass("item").html('<i class="icon-empty"></i> ' + buffer)
         @list.append(node)
         node[0]
       @list.append($("<li></li>").addClass("divider")) if @buffers.length
-      @openItem = $("<li></li>").addClass("item").text("Open...")
-        .append($("<span></span>").addClass("shortcut").text("Ctrl-F"))
-      @nodes.push(@openItem)
-      @list.append(@openItem)
-      @newItem = $("<li></li>").addClass("item").text("New...")
+      @newItem = $("<li></li>").addClass("item").html('<i class="icon-file"></i> New...')
         .append($("<span></span>").addClass("shortcut").text("Ctrl-Shift-F"))
       @nodes.push(@newItem)
       @list.append(@newItem)
+      @openItem = $("<li></li>").addClass("item").html('<i class="icon-folder-open"></i> Open...')
+        .append($("<span></span>").addClass("shortcut").text("Ctrl-F"))
+      @nodes.push(@openItem)
+      @list.append(@openItem)
 
     onClick: (e) =>
       index = @nodes.indexOf(e.target)
