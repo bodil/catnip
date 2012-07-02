@@ -6,7 +6,7 @@
   (:require [clojure.data.json :as json]
             [clojure.repl :as repl]
             [clojure.pprint :as pprint]
-            [clojure.contrib.string :as string]
+            [clojure.string :as string]
             [catnip.filesystem :as fs]
             [catnip.complete :as complete]
             [catnip.profile :as profile])

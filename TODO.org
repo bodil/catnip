@@ -1,0 +1,2 @@
+* Spinner or similar while REPL is evaluating long running code.
+* Evaluate sexps from the editor.
