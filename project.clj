@@ -6,6 +6,6 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/data.json "0.1.2"]
                  [org.webbitserver/webbit "0.4.6"]
-                 [org.clojure/clojurescript "0.0-1011"]
+                 [org.clojure/clojurescript "0.0-1443"]
                  [clj-info "0.2.3"]]
   :main catnip.server)

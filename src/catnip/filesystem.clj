@@ -4,7 +4,7 @@
 
 (ns catnip.filesystem
   (:require [clojure.java.io :as io]
-            [cljs.closure :as cljsc])
+            [catnip.cljs :as cljs])
   (:use [clojure.test])
   (:import [java.io File]))
 
@@ -82,20 +82,7 @@
                   :file (slurp (io/file project-path (:path msg)))}
                  "save"
                  (save-file (:path msg) (:file msg))
+                 "cljsc"
+                 (cljs/cljs-compile project-path)
                  {:error "Unrecognised command."})]
       (assoc result :command (:command msg))))
-
-(defn cljs-compile [path]
-  (let [fullpath (str (io/file project-path path))
-        outpath (str (io/file project-path "resources" "public" "cljs"))
-        outfile (str (io/file project-path "resources" "public" "cljs" "bootstrap.js"))]
-    (try
-      (with-out-str (cljsc/build path
-                                 {:output-dir outpath
-                                  :output-to outfile
-                                  :optimizations :simple
-                                  :pretty-print true}))
-      {:success true :output ""}
-      (catch Throwable e
-        {:success false :error (.getMessage e)}))))
-
