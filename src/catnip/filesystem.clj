@@ -46,7 +46,7 @@
          (try (relative-to (io/file "/o/hai") (io/file "/foo/bar/gazonk.clj"))
               (catch AssertionError e (.getClass e))))))
 
-(defn dir [path]
+(defn project-files [path]
   (map (partial relative-to project-path)
        (filter #(and (.isFile %) (inside-none? ignored-paths %))
                (file-seq path))))
@@ -74,7 +74,7 @@
 (defn fs-command [msg]
   (let [result (case (:command msg)
                  "files"
-                 {:files (dir project-path)}
+                 {:files (project-files project-path)}
                  "dirs"
                  {:dirs (subpaths project-path)}
                  "read"
