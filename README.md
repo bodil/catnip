@@ -4,7 +4,7 @@ Catnip is a Leiningen plugin providing a fully functional text editor
 and REPL environment geared towards web development with Clojure and
 ClojureScript.
 
-![Screenshot](catnip-screenshot.png)
+![Screenshot](https://raw.github.com/bodil/catnip/master/catnip-screenshot.png)
 
 ## Usage
 
