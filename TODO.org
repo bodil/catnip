@@ -1,2 +1,5 @@
 * Spinner or similar while REPL is evaluating long running code.
 * Evaluate sexps from the editor.
+* Store context in URL so you can reload and stay on the same file.
+* Consider Chrome plugin to circumvent browser iframe's security restrictions.
+* REPL for browser iframe, both JS and CLJS.
