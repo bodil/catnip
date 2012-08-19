@@ -4,6 +4,8 @@ Catnip is a Leiningen plugin providing a fully functional text editor
 and REPL environment geared towards web development with Clojure and
 ClojureScript.
 
+![Screenshot](catnip-screenshot.png)
+
 ## Usage
 
 To install using Leiningen, simply add the plugin to your ~/.lein/profiles.clj file:
