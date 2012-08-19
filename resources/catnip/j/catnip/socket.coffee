@@ -45,9 +45,10 @@ define ["jquery", "ace/lib/event_emitter"
           path: name
           file: content
 
-    compileCljs: (name, tag) =>
+    compileCljs: (tag) =>
       @send tag,
-        cljs: name
+        fs:
+          command: "cljsc"
 
     eval: (form, tag) =>
       @send tag,

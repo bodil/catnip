@@ -1,3 +1,3 @@
 (ns catnip.client)
 
-(js/alert "ohai!")
+;(js/alert "ohai!")

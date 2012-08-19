@@ -142,7 +142,7 @@
 
             (:profile msg)
             {:profile (profile/read-profile)}
-            
+
             :else {:error "Bad message" :msg json})
           (catch Exception e
             {:error (with-err-str (repl/pst (repl/root-cause e)))}))]
@@ -178,4 +178,3 @@
 (defn -main [& m]
   (let [port (Integer. (get (System/getenv) "PORT" "1337"))]
     (start port)))
-

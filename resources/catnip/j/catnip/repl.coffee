@@ -110,6 +110,9 @@ define ["jquery", "cs!./keybindings", "./caret"
       else if msg.eval?
         e.stopPropagation()
         @onEvalMessage msg
+      else if msg.fs? and msg.fs.command == "cljsc"
+        e.stopPropagation()
+        @onCljscMessage(msg)
 
     onCompleteMessage: (msg) =>
       if @suggestBox? then @suggestBox.close()
@@ -192,7 +195,7 @@ define ["jquery", "cs!./keybindings", "./caret"
             ])
         else
           if msg.tag != "test"
-            result = @replPrint("result", "#{msg.ns} compiled successfully.")
+            @replPrint("result", "#{msg.ns} compiled successfully.")
             @browser.reload()
           else
             test = msg.eval[msg.eval.length - 1]
@@ -243,7 +246,16 @@ define ["jquery", "cs!./keybindings", "./caret"
         @replPrint("result", "#{msg.fs.path} saved.")
         if fileExtension(msg.fs.path) == "clj" and msg.fs.path != "project.clj"
           if msg.tag == "test" then @editor.runTests() else @editor.evalBuffer()
+        else if fileExtension(msg.fs.path) == "cljs"
+          @socket.compileCljs(msg.fs.path)
         else
           @browser.reload()
       else
         @replPrint("error", "Save error: #{msg.fs.error}")
+
+    onCljscMessage: (msg) =>
+      if msg.fs.success
+        @replPrint("result", "#{msg.tag} compiled successfully.")
+        @browser.reload()
+      else
+        @replPrint("error", "cljsc: #{msg.fs.error}")

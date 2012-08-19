@@ -1,7 +1,10 @@
 /target
+/stale
 /lib
 /classes
 /checkouts
 pom.xml
 *.jar
 *.class
+.lein-cljsbuild*
+/resources/catnip/cljs
