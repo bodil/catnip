@@ -11,7 +11,8 @@ define ["jquery", "cs!./socket", "cs!./editor"
     window.browser = browser = new Browser $("#view"), $("#location-bar"), $("#location-refresh"), socket
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
     new BufferMenu($("#buffer-menu"), editor)
-    editor.loadBuffer("project.clj")
+
+    editor.loadBuffer(editor.getBufferAccordingToURL())
 
     $(window).on "keydown", (e) ->
       if keybindings.matchBinding e, "C-r"

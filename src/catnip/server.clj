@@ -173,10 +173,14 @@
               (onOpen [c] (on-connect c))
               (onClose [c] (on-disconnect c))
               (onMessage [c j] (on-message c j))))
-      (.add "/" (AliasHandler. "/index.html"))
+      (.add "/(buffers/.*|$)" (AliasHandler. "/index.html"))
       (.add (EmbeddedResourceHandler. "catnip"))
       (.start))
+    (def ^:dynamic *server* server)
     (.getUri server)))
+
+(defn stop []
+  (.stop *server*))
 
 (defn -main [& m]
   (let [port (Integer. (get (System/getenv) "PORT" "1337"))]

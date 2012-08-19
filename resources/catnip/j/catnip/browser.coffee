@@ -21,7 +21,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     onSocketMessage: (e) =>
       msg = e.message
       if msg.profile?
-        @frame[0].src = msg.profile["default-url"]
+        @frame[0].src = msg.profile["default-browser-url"]
 
     syncLocationBar: =>
       @locationBar.val(@frame[0].src)

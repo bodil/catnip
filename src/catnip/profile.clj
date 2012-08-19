@@ -9,7 +9,7 @@
 (def default-profile
   {:snippets
    {"testfn" "(with-test\n  (defn )\n  (is ))\n"}
-   :default-url "intro.html"})
+   :default-browser-url "/intro.html"})
 
 (defn- profile-path []
   (let [path (io/file (System/getProperty "user.home") ".catnip")]
@@ -23,5 +23,5 @@
 (defn read-profile []
   (let [path (profile-path)]
     (if (.exists path)
-      (read-string (slurp (profile-path)))
+      (merge default-profile (read-string (slurp (profile-path))))
       (save-profile default-profile))))

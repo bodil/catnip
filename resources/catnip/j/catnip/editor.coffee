@@ -26,6 +26,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @resize()
       @focus()
 
+      $(window).on "popstate", @onWindowHistoryPopState
+
       @socket.on "message", @onSocketMessage
       @socket.profile()
 
@@ -129,7 +131,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         @onCompleteMessage msg
       else if msg.fs? and msg.fs.command == "read"
         e.stopPropagation()
-        @openBuffer(msg.fs.path, msg.fs.file)
+        @openBuffer(msg.fs.path, msg.fs.file, msg.tag)
       else if msg.fs? and msg.fs.command == "files"
         e.stopPropagation()
         new FileSelector(msg.fs.files, @getBufferHistory()).on("selected", @onFileSelected)
@@ -214,14 +216,18 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       list = @getBufferHistory()
       new FileSelector(list, list).on("selected", @onFileSelected)
 
-    pushBufferHistory: (path) =>
+    pushBufferHistory: (path, no_window_history) =>
       @bufferHistory = (x for x in @bufferHistory when x != path)
       @bufferHistory.unshift(path)
+      if not no_window_history
+        url = "/buffers/#{path}"
+        if url != window.location.pathname
+          window.history.pushState({}, "", url)
 
     getBufferHistory: =>
       (x for x in @bufferHistory when @buffers[x]?)
 
-    openBuffer: (path, content) =>
+    openBuffer: (path, content, tag) =>
       @session._storedCursorPos = @getCursorPosition()
       filename = path.split("/").pop()
       $("div.navbar a.brand").text(filename)
@@ -238,13 +244,22 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         session.setTabSize(2)
         session.bufferName = path
       @setSession(session)
-      @pushBufferHistory(path)
+      @pushBufferHistory(path, tag == "window-history")
       if session._storedCursorPos?
         @navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
       @focus()
       @_emit "openBuffer"
         path: path
         session: session
+
+    getBufferAccordingToURL: ->
+      m = window.location.href.match(/\/buffers\/(.*)/)
+      if m then m[1] else "project.clj"
+
+    onWindowHistoryPopState: (e) =>
+      buffer = @getBufferAccordingToURL()
+      if buffer and @session.bufferName != buffer
+        @socket.readFile(buffer, "window-history")
 
     documentSymbol: =>
       { row, column } = @getCursorPosition()
