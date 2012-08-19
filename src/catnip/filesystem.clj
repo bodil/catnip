@@ -5,57 +5,51 @@
 (ns catnip.filesystem
   (:require [clojure.java.io :as io]
             [catnip.cljs :as cljs])
-  (:use [clojure.test])
+  (:use [clojure.test]
+        [catnip.paths])
   (:import [java.io File]))
 
 (def project-path (.getCanonicalFile (io/file ".")))
-(def ignored-paths (map #(io/file project-path %) ["target" "checkouts" ".git"]))
 
 (with-test
-    (defn inside?
-      "Tests if a file is inside a given path."
-      [^File path ^File file]
-      (let [abspath (.getAbsolutePath path)
-            absfile (.getAbsolutePath file)]
-        (.startsWith absfile abspath)))
-  (is (inside? (io/file "/foo/bar") (io/file "/foo/bar/gazonk.clj")))
-  (is (not (inside? (io/file "/foo/bar") (io/file "/foo/gazonk.clj")))))
+  (defn parse-gitignore [f]
+    (if (.isFile f)
+      (set (clojure.string/split-lines (slurp f)))
+      #{}))
+  (is (= #{"foo" "bar/*"} (parse-gitignore (tempfile "foo\r\nbar/*\r\n")))))
 
 (with-test
-    (defn inside-none?
-      "Test if a file isn't inside any one of the given paths."
-      [paths ^File file]
-      (not-any? #(inside? % file) paths))
-  (is (not (inside-none? [(io/file "/foo/bar") (io/file "/bar/foo")] (io/file "/bar/foo/quux"))))
-  (is (inside-none? [(io/file "/foo/bar") (io/file "/bar/foo")] (io/file "/quux/foo/bar"))))
+  (defn ignored-paths
+    "Generate a matcher function for paths to be ignored."
+    ([]
+       (ignored-paths (parse-gitignore
+                       (io/file project-path ".gitignore"))))
+    ([gitignore]
+       (let [r
+             (map glob-matcher
+                  (clojure.set/union
+                   (set ["/target" "/checkouts"])
+                   gitignore))]
+         (fn [f]
+           (or (not (inside? project-path f))
+               (dotfile? f)
+               (some #(% (io/file "/" (relative-to project-path f))) r))))))
+  (is ((ignored-paths #{"/target"}) (io/file "target")))
+  (is ((ignored-paths #{"/target"}) (io/file "target/foo")))
+  (is (not ((ignored-paths #{"/target"}) (io/file "flerb")))))
 
-(with-test
-    (defn relative-to
-      "Returns the path to file relative to path. File must be inside path."
-      [path file]
-      {:pre [(inside? path file)]}
-      (let [abspath (.getAbsolutePath path)
-            absfile (.getAbsolutePath file)]
-        (loop [fn (.substring absfile (.length abspath))]
-          (if (.startsWith fn File/separator)
-            (recur (.substring fn (.length File/separator)))
-            fn))))
-  (is (= "baz/gazonk.clj" (relative-to (io/file "/foo/bar")
-                                       (io/file "/foo/bar/baz/gazonk.clj"))))
-  (is (= AssertionError
-         (try (relative-to (io/file "/o/hai") (io/file "/foo/bar/gazonk.clj"))
-              (catch AssertionError e (.getClass e))))))
-
-(defn dir [path]
-  (map (partial relative-to project-path)
-       (filter #(and (.isFile %) (inside-none? ignored-paths %))
-               (file-seq path))))
+(defn list-dir [path]
+  (let [ignore (ignored-paths)]
+    (map (partial relative-to project-path)
+         (filter #(and (.isFile %) (not (ignore %)))
+                 (file-seq path)))))
 
 (defn subpaths [path]
-  (map (partial relative-to project-path)
-       (filter #(and (.isDirectory %) (not (= project-path %))
-                     (inside-none? ignored-paths %))
-               (file-seq path))))
+  (let [ignore (ignored-paths)]
+    (map (partial relative-to project-path)
+         (filter #(and (.isDirectory %) (not (= project-path %))
+                       (not (ignore %)))
+                 (file-seq path)))))
 
 (defn ensure-parent [path]
   (let [parent (.getParentFile path)]
@@ -74,7 +68,7 @@
 (defn fs-command [msg]
   (let [result (case (:command msg)
                  "files"
-                 {:files (dir project-path)}
+                 {:files (list-dir project-path)}
                  "dirs"
                  {:dirs (subpaths project-path)}
                  "read"
@@ -85,4 +79,4 @@
                  "cljsc"
                  (cljs/cljs-compile project-path)
                  {:error "Unrecognised command."})]
-      (assoc result :command (:command msg))))
+    (assoc result :command (:command msg))))

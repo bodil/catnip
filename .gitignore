@@ -6,5 +6,5 @@
 pom.xml
 *.jar
 *.class
-.lein-cljsbuild*
+/.lein-cljsbuild*
 /resources/catnip/cljs
