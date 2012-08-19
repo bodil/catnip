@@ -6,6 +6,7 @@
   (:require [clojure.java.io :as io]
             [catnip.cljs :as cljs])
   (:use [clojure.test]
+        [clojure.set :only [union]]
         [catnip.paths])
   (:import [java.io File]))
 
@@ -27,7 +28,7 @@
     ([gitignore]
        (let [r
              (map glob-matcher
-                  (clojure.set/union
+                  (union
                    (set ["/target" "/checkouts"])
                    gitignore))]
          (fn [f]
