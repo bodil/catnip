@@ -96,11 +96,13 @@
   (defn map-if-key
     "If hash contains key, apply function f to value of key."
     [hash & args]
-    (reduce (fn [hash [key f]]
-              (if (hash key)
-                (assoc hash key (f (hash key)))
-                hash))
-            hash (partition 2 args)))
+    (if hash
+      (reduce (fn [hash [key f]]
+                (if (hash key)
+                  (assoc hash key (f (hash key)))
+                  hash))
+              hash (partition 2 args))
+      hash))
   (is (= {:foo 5 :bar 2} (map-if-key {:foo 4 :bar 2} :foo inc)))
   (is (= {:foo 4 :bar 2} (map-if-key {:foo 4 :bar 2} :baz inc)))
   (is (= {:foo 5 :bar 1} (map-if-key {:foo 4 :bar 2} :foo inc :bar dec))))
@@ -112,7 +114,8 @@
                   :ns ns-name
                   :all-other-fqv #(map str %)
                   :inline str
-                  :tag str))))
+                  :tag str
+                  :test str))))
 
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))
