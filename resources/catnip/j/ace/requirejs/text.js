@@ -35,23 +35,23 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-/**
+/*
  * Extremely simplified version of the requireJS text plugin
  */
  
 (function() {
     
-var globalRequire = require;
+var globalRequire = typeof require != "undefined" && require;
  
 define(function (require, exports, module) {
     "use strict";
     
     exports.load = function (name, req, onLoad, config) {
-        if (req.isBrowser)
-            require("ace/lib/net").get(req.toUrl(name), onLoad);
-        else
-            //Using special require.nodeRequire, something added by r.js.
+        //Using special require.nodeRequire, something added by r.js.
+        if (globalRequire && globalRequire.nodeRequire)
             onLoad(globalRequire.nodeRequire('fs').readFileSync(req.toUrl(name), 'utf8'));
+        else
+            require("ace/lib/net").get(req.toUrl(name), onLoad);
     };
 });
 

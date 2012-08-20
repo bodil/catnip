@@ -190,7 +190,8 @@ var ClojureHighlightRules = function() {
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
             }, {
                 token : "string", // single line
-                regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
+                regex : '"',
+                next: "string"
             }, {
                 token : "string", // symbol
                 regex : "[:](?:[a-zA-Z]|\\d)+"
@@ -209,6 +210,21 @@ var ClojureHighlightRules = function() {
                 token : "comment", // comment spanning whole line
                 merge : true,
                 regex : ".+"
+            }
+        ],
+        "string" : [
+            {
+                token : "constant.language.escape",
+                merge : true,
+                regex : "\\\\.|\\\\$"
+            }, {
+                token : "string",
+                merge : true,
+                regex : '[^"\\\\]+'
+            }, {
+                token : "string",
+                regex : '"',
+                next : "start"
             }
         ]
     };

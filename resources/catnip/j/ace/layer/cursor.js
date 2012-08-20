@@ -107,11 +107,11 @@ var Cursor = function(parentEl) {
         if (!this.isVisible)
             return;
 
-        var element = this.element;
+        var element = this.cursors.length == 1 ? this.cursor : this.element;
         this.blinkId = setInterval(function() {
             element.style.visibility = "hidden";
             setTimeout(function() {
-                element.style.visibility = "visible";
+                element.style.visibility = "";
             }, 400);
         }, 1000);
     };
@@ -141,7 +141,7 @@ var Cursor = function(parentEl) {
     this.update = function(config) {
         this.config = config;
 
-        if (this.session.selectionMarkerCount > 1) {
+        if (this.session.selectionMarkerCount > 0) {
             var selections = this.session.$selectionMarkers;
             var i = 0, sel, cursorIndex = 0;
 
@@ -174,6 +174,9 @@ var Cursor = function(parentEl) {
         var overwrite = this.session.getOverwrite();
         if (overwrite != this.overwrite)
             this.$setOverite(overwrite);
+
+        // cache for textarea and gutter highlight
+        this.$pixelPos = pixelPos;
 
         this.restartTimer();
     };

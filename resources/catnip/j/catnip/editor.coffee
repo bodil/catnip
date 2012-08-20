@@ -18,6 +18,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     constructor: (element, @socket) ->
       super(new Renderer(element, theme_chrome))
       new MultiSelect(this)
+      @setDisplayIndentGuides(false)
 
       @buffers = {}
       @bufferHistory = []

@@ -42,21 +42,31 @@ var oop = require("../lib/oop");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var config = require("../config");
 
-var WorkerClient = function(topLevelNamespaces, packagedJs, mod, classname) {
+var WorkerClient = function(topLevelNamespaces, mod, classname) {
 
     this.changeListener = this.changeListener.bind(this);
 
     if (config.get("packaged")) {
-        this.$worker = new Worker(config.get("workerPath") + "/" + packagedJs);
+        this.$worker = new Worker(config.moduleUrl(mod, "worker"));
     }
     else {
-        var workerUrl = this.$normalizePath(require.nameToUrl("ace/worker/worker", null, "_"));
+        var workerUrl;
+        if (typeof require.supports !== "undefined" && require.supports.indexOf("ucjs2-pinf-0") >= 0) {
+            // We are running in the sourcemint loader.
+            workerUrl = require.nameToUrl("ace/worker/worker_sourcemint");
+        } else {
+            // We are running in RequireJS.
+            // nameToUrl is renamed to toUrl in requirejs 2
+            if (require.nameToUrl && !require.toUrl)
+                require.toUrl = require.nameToUrl;
+            workerUrl = this.$normalizePath(require.toUrl("ace/worker/worker", null, "_"));
+        }
         this.$worker = new Worker(workerUrl);
 
         var tlns = {};
         for (var i=0; i<topLevelNamespaces.length; i++) {
             var ns = topLevelNamespaces[i];
-            var path = this.$normalizePath(require.nameToUrl(ns, null, "_").replace(/.js$/, ""));
+            var path = this.$normalizePath(require.toUrl(ns, null, "_").replace(/.js(\?.*)?$/, ""));
 
             tlns[ns] = path;
         }
@@ -104,6 +114,8 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, mod, classname) {
     oop.implement(this, EventEmitter);
 
     this.$normalizePath = function(path) {
+        if (!location.host) // needed for file:// protocol
+            return path;
         path = path.replace(/^[a-z]+:\/\/[^\/]+/, ""); // Remove domain name and rebuild it
         path = location.protocol + "//" + location.host
             // paths starting with a slash are relative to the root (host)

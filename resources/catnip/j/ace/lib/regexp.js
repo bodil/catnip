@@ -1,4 +1,4 @@
-/**
+/*
  *  Based on code from:
  *
  * XRegExp 1.5.0
@@ -29,6 +29,9 @@ define(function(require, exports, module) {
             real.test.call(x, "");
             return !x.lastIndex;
         }();
+
+    if (compliantLastIndexIncrement && compliantExecNpcg)
+        return;
 
     //---------------------------------
     //  Overriden native methods
@@ -95,7 +98,7 @@ define(function(require, exports, module) {
                (regex.multiline  ? "m" : "") +
                (regex.extended   ? "x" : "") + // Proposed for ES4; included in AS3
                (regex.sticky     ? "y" : "");
-    };
+    }
 
     function indexOf (array, item, from) {
         if (Array.prototype.indexOf) // Use the native array method if available
@@ -105,6 +108,6 @@ define(function(require, exports, module) {
                 return i;
         }
         return -1;
-    };
+    }
 
 });

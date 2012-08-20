@@ -107,14 +107,18 @@ MockRenderer.prototype.on = function() {
 MockRenderer.prototype.updateCursor = function() {
 };
 
+MockRenderer.prototype.animateScrolling = function(fromValue, callback) {
+    callback && callback();
+};
+
 MockRenderer.prototype.scrollToX = function(scrollTop) {};
 MockRenderer.prototype.scrollToY = function(scrollLeft) {};
 
 MockRenderer.prototype.scrollToLine = function(line, center) {
-    var lineHeight = { lineHeight: 16 };
+    var lineHeight = 16;
     var row = 0;
     for (var l = 1; l < line; l++) {
-        row += this.session.getRowHeight(lineHeight, l-1) / lineHeight.lineHeight;
+        row += this.session.getRowLength(l-1);
     }
 
     if (center) {
@@ -150,6 +154,9 @@ MockRenderer.prototype.getScrollTopRow = function() {
 MockRenderer.prototype.draw = function() {
 };
 
+MockRenderer.prototype.onChangeTabSize = function(startRow, endRow) {
+};
+
 MockRenderer.prototype.updateLines = function(startRow, endRow) {
 };
 
@@ -159,7 +166,7 @@ MockRenderer.prototype.updateBackMarkers = function() {
 MockRenderer.prototype.updateFrontMarkers = function() {
 };
 
-MockRenderer.prototype.setBreakpoints = function() {
+MockRenderer.prototype.updateBreakpoints = function() {
 };
 
 MockRenderer.prototype.onResize = function() {

@@ -38,6 +38,21 @@
 define(function(require, exports, module) {
 "use strict";
 
+/**
+ * class Tokenizer
+ *
+ * This class takes a set of highlighting rules, and creates a tokenizer out of them. For more information, see [the wiki on extending highlighters](https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode#wiki-extendingTheHighlighter).
+ *
+ **/
+
+/**
+ * new Tokenizer(rules, flag)
+ * - rules (Object): The highlighting rules
+ * - flag (String): Any additional regular expression flags to pass (like "i" for case insensitive)
+ *
+ * Constructs a new tokenizer based on the given rules and flags.
+ *
+ **/
 var Tokenizer = function(rules, flag) {
     flag = flag ? "g" + flag : "g";
     this.rules = rules;
@@ -83,8 +98,13 @@ var Tokenizer = function(rules, flag) {
 
 (function() {
 
+    /**
+    * Tokenizer.getLineTokens() -> Object
+    *
+    * Returns an object containing two properties: `tokens`, which contains all the tokens; and `state`, the current state.
+    **/
     this.getLineTokens = function(line, startState) {
-        var currentState = startState;
+        var currentState = startState || "start";
         var state = this.rules[currentState];
         var mapping = this.matchMappings[currentState];
         var re = this.regExps[currentState];
@@ -119,9 +139,8 @@ var Tokenizer = function(rules, flag) {
                 else
                     type = rule.token;
 
-                var next = rule.next;
-                if (next && next !== currentState) {
-                    currentState = next;
+                if (rule.next) {
+                    currentState = rule.next;
                     state = this.rules[currentState];
                     mapping = this.matchMappings[currentState];
                     lastIndex = re.lastIndex;

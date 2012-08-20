@@ -35,6 +35,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/**
+ * class Ace
+ *
+ * The main class required to set up an Ace instance in the browser.
+ *
+ *
+ **/
+
 define(function(require, exports, module) {
 "use strict";
 
@@ -54,12 +62,21 @@ require("./worker/worker_client");
 require("./keyboard/hash_handler");
 require("./keyboard/state_handler");
 require("./placeholder");
-require("./config").init();
-
+exports.config = require("./config");
+    /**
+     * Ace.edit(el) -> Editor
+     * - el (String | DOMElement): Either the id of an element, or the element itself
+     *
+     * This method embeds the Ace editor into the DOM, at the element provided by `el`.
+     *
+     **/
 exports.edit = function(el) {
     if (typeof(el) == "string") {
         el = document.getElementById(el);
     }
+
+    if (el.env && el.env.editor instanceof Editor)
+        return el.env.editor;
 
     var doc = new EditSession(Dom.getInnerText(el));
     doc.setUndoManager(new UndoManager());

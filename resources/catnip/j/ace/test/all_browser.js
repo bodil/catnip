@@ -11,6 +11,7 @@ var log = document.getElementById("log")
 
 var testNames = [
     "ace/anchor_test",
+    "ace/background_tokenizer_test",
     "ace/commands/command_manager_test",
     "ace/document_test",
     "ace/edit_session_test",
@@ -41,6 +42,7 @@ var testNames = [
     "ace/mode/folding/html_test",
     "ace/mode/folding/pythonic_test",
     "ace/mode/folding/xml_test",
+    "ace/mode/folding/coffee_test",
     "ace/multi_select_test",
     "ace/range_test",
     "ace/range_list_test",
@@ -65,7 +67,11 @@ if (location.search)
     testNames = location.search.substr(1).split(",")
 
 require(testNames, function() {
-    var tests = testNames.map(require);
+    var tests = testNames.map(function(x) {
+        var module = require(x);
+        module.href = x;
+        return module;
+    });
     
     async.list(tests)
         .expand(function(test) {
@@ -73,6 +79,12 @@ require(testNames, function() {
         }, AsyncTest.TestGenerator)
         .run()
         .each(function(test, next) {
+            if (test.index == 1 && test.context.href) {
+                var href = test.context.href;
+                var node = document.createElement("div");
+                node.innerHTML = "<a href='?" + href + "'>" + href.replace(/^ace\//, "") + "</a>";
+                log.appendChild(node);
+            }
             var node = document.createElement("div");
             node.className = test.passed ? "passed" : "failed";
 
