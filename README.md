@@ -70,6 +70,12 @@ file in Catnip, it will use this configuration to recompile the
 Note that Catnip will only look at the first build configuration; if
 you have more than one, the rest will be ignored.
 
+## Browser Notes
+
+Catnip is developed primarily for Google Chrome, and is tested
+regularly (though not guaranteed to work perfectly at any given time)
+on Mozilla Firefox. No proprietary browsers are supported.
+
 ## License
 
 Copyright © 2012 Bodil Stokke
