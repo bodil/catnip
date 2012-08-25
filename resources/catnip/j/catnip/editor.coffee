@@ -92,6 +92,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Ctrl-I"
         exec: => @expandSnippet()
 
+      @commands.addCommand
+        name: "evaluateSexp"
+        bindKey: "Ctrl-E"
+        exec: => @evaluateSexp()
+
     updateTheme: =>
       if $("body").hasClass("theme-light")
         @setTheme("ace/theme/chrome")
@@ -280,13 +285,19 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       if buffer and @session.bufferName != buffer
         @socket.readFile(buffer, "window-history")
 
-    documentSymbol: =>
+    getSymbolAtPoint: =>
       { row, column } = @getCursorPosition()
       line = @session.getLine(row)
       before = line[...column].match(keybindings.completeRe)
       after = line[column..].match(/^[^\s()\[\]{},\'`~\#@]*/)
-      symbol = before + after
-      @socket.doc(@guessNamespace(), symbol, "editor")
+      before + after
+
+    getCharBeforePoint: =>
+      { row, column } = @getCursorPosition()
+      @session.getLine(row)[column - 1]
+
+    documentSymbol: =>
+      @socket.doc(@guessNamespace(), @getSymbolAtPoint(), "editor")
 
     onDocumentSymbol: (msg) =>
       @doctip?.close()
@@ -315,3 +326,15 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       for own path, session of @buffers
         if session.dirty
           return e.returnValue = "Buffer \"#{path}\" has been modified."
+
+    evaluateSexp: =>
+      if @getCharBeforePoint() in ")}]\""
+        pos = @getCursorPosition()
+        @jumpToMatching(true)
+        sel = @session.doc.getTextRange(@getSelectionRange())
+        @moveCursorToPosition(pos)
+      else
+        sel = @getSymbolAtPoint()
+      sel = sel.trim()
+      if sel
+        @socket.eval(sel, "repl")
