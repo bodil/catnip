@@ -40,7 +40,7 @@ define(function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
-var Behaviour = require('../behaviour').Behaviour;
+var Behaviour = require("../behaviour").Behaviour;
 
 var CstyleBehaviour = function () {
 
@@ -167,7 +167,7 @@ var CstyleBehaviour = function () {
             var line = session.doc.getLine(cursor.row);
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == ']') {
-                var matching = session.$findOpeningBracket(')', {column: cursor.column + 1, row: cursor.row});
+                var matching = session.$findOpeningBracket(']', {column: cursor.column + 1, row: cursor.row});
                 if (matching !== null) {
                     return {
                         text: '',
@@ -211,7 +211,7 @@ var CstyleBehaviour = function () {
                 }
 
                 // Find what token we're inside.
-                var tokens = session.getTokens(selection.start.row, selection.start.row)[0].tokens;
+                var tokens = session.getTokens(selection.start.row);
                 var col = 0, token;
                 var quotepos = -1; // Track whether we're inside an open quote.
 

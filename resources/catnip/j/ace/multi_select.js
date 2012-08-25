@@ -42,7 +42,9 @@ var RangeList = require("./range_list").RangeList;
 var Range = require("./range").Range;
 var Selection = require("./selection").Selection;
 var onMouseDown = require("./mouse/multi_select_handler").onMouseDown;
-exports.commands = require("./commands/multi_select_commands");
+var event = require("./lib/event");
+var commands = require("./commands/multi_select_commands");
+exports.commands = commands.defaultCommands.concat(commands.multiSelectCommands);
 
 // Todo: session.find or editor.findVolatile that returns range
 var Search = require("./search").Search;
@@ -71,22 +73,25 @@ var EditSession = require("./edit_session").EditSession;
     // automatically sorted list of ranges
     this.rangeList = null;
 
-    /**
-     * Selection.addRange(Range) -> Void
+    /** extension
+     * Selection.addRange(range, $blockChangeEvents) 
+     * - range (Range): The new range to add
+     * - $blockChangeEvents (Boolean): Whether or not to block changing events
      *
-     * adds a range to selection entering multiselect mode if necessary
+     * Adds a range to a selection by entering multiselect mode, if necessary.
      **/
-    this.addRange = function(range) {
-        if (!this.inMultiSelectMode && this.rangeCount == 0) {
-            var oldRange = this.toOrientedRange();
-            if (!range || !range.isEqual(oldRange)) {
-                this.rangeList.add(oldRange);
-                this.$onAddRange(oldRange);
-            }
-        }
-
+    this.addRange = function(range, $blockChangeEvents) {
         if (!range)
             return;
+
+        if (!this.inMultiSelectMode && this.rangeCount == 0) {
+            var oldRange = this.toOrientedRange();
+            if (range.intersects(oldRange))
+                return $blockChangeEvents || this.fromOrientedRange(range);
+
+            this.rangeList.add(oldRange);
+            this.$onAddRange(oldRange);
+        }
 
         if (!range.cursor)
             range.cursor = range.end;
@@ -98,12 +103,14 @@ var EditSession = require("./edit_session").EditSession;
         if (removed.length)
             this.$onRemoveRange(removed);
 
-        if (this.rangeCount > 0 && !this.inMultiSelectMode) {
+        if (this.rangeCount > 1 && !this.inMultiSelectMode) {
             this._emit("multiSelect");
             this.inMultiSelectMode = true;
             this.session.$undoSelect = false;
             this.rangeList.attach(this.session);
         }
+
+        return $blockChangeEvents || this.fromOrientedRange(range);
     };
 
     this.toSingleRange = function(range) {
@@ -115,11 +122,11 @@ var EditSession = require("./edit_session").EditSession;
         range && this.fromOrientedRange(range);
     };
     
-    /**
-     * Selection.addRange(pos) -> Range
-     * pos: {row, column}
+    /** extension
+     * Selection.substractPoint(pos) -> Range
+     * - pos (Range): The position to remove, as a `{row, column}` object
      *
-     * removes range containing pos (if exists)
+     * Removes a Range containing pos (if it exists).
      **/
     this.substractPoint = function(pos) {
         var removed = this.rangeList.substractPoint(pos);
@@ -129,10 +136,10 @@ var EditSession = require("./edit_session").EditSession;
         }
     };
 
-    /**
-     * Selection.mergeOverlappingRanges() -> Void
+    /** extension
+     * Selection.mergeOverlappingRanges() 
      *
-     * merges overlapping ranges ensuring consistency after changes
+     * Merges overlapping ranges ensuring consistency after changes
      **/
     this.mergeOverlappingRanges = function() {
         var removed = this.rangeList.merge();
@@ -145,7 +152,6 @@ var EditSession = require("./edit_session").EditSession;
     this.$onAddRange = function(range) {
         this.rangeCount = this.rangeList.ranges.length;
         this.ranges.unshift(range);
-        this.fromOrientedRange(range);
         this._emit("addRange", {range: range});
     };
 
@@ -199,6 +205,37 @@ var EditSession = require("./edit_session").EditSession;
             this.toSingleRange();
             this.setSelectionRange(range, lastRange.cursor == lastRange.start);
         } else {
+            var range = this.getRange();
+            var startRow = range.start.row;
+            var endRow = range.end.row;
+            if (startRow == endRow)
+                return;
+
+            var rectSel = [];
+            var r = this.getLineRange(startRow, true);
+            r.start.column = range.start.column;
+            rectSel.push(r);
+
+            for (var i = startRow + 1; i < endRow; i++)
+                rectSel.push(this.getLineRange(i, true));
+
+            r = this.getLineRange(endRow, true);
+            r.end.column = range.end.column;
+            rectSel.push(r);
+
+            rectSel.forEach(this.addRange, this);
+        }
+    };
+
+    this.toggleBlockSelection = function () {
+        if (this.rangeCount > 1) {
+            var ranges = this.rangeList.ranges;
+            var lastRange = ranges[ranges.length - 1];
+            var range = Range.fromPoints(ranges[0].start, lastRange.end);
+
+            this.toSingleRange();
+            this.setSelectionRange(range, lastRange.cursor == lastRange.start);
+        } else {
             var cursor = this.session.documentToScreenPosition(this.selectionLead);
             var anchor = this.session.documentToScreenPosition(this.selectionAnchor);
 
@@ -207,11 +244,14 @@ var EditSession = require("./edit_session").EditSession;
         }
     };
 
-    /**
-     *   Selection.rectangularRangeBlock(screenCursor, screenAnchor, includeEmptyLines) -> [Range]
-     *   gets list of ranges composing rectangular block on the screen
-     *   @includeEmptyLines if true includes ranges inside the block which
-     *         are empty becuase of the clipping
+    /** extension
+     * Selection.rectangularRangeBlock(screenCursor, screenAnchor, includeEmptyLines) -> Range
+     * - screenCursor (Cursor): The cursor to use
+     * - screenAnchor (Anchor): The anchor to use
+     * - includeEmptyLins (Boolean): If true, this includes ranges inside the block which are empty due to clipping
+     *  
+     * Gets list of ranges composing rectangular block on the screen
+     *
      */
     this.rectangularRangeBlock = function(screenCursor, screenAnchor, includeEmptyLines) {
         var rectSel = [];
@@ -281,21 +321,22 @@ var EditSession = require("./edit_session").EditSession;
 // extend Editor
 var Editor = require("./editor").Editor;
 (function() {
-    /**
-     * Editor.updateSelectionMarkers() -> Void
+    
+    /** extension
+     * Editor.updateSelectionMarkers() 
      *
-     * updates cursor and marker layers
+     * Updates the cursor and marker layers.
      **/
     this.updateSelectionMarkers = function() {
         this.renderer.updateCursor();
         this.renderer.updateBackMarkers();
     };
 
-    /**
+    /** extension
      * Editor.addSelectionMarker(orientedRange) -> Range
-     * - orientedRange: range with cursor
+     * - orientedRange (Range): A range containing a cursor
      *
-     * adds selection and cursor
+     * Adds the selection and cursor.
      **/
     this.addSelectionMarker = function(orientedRange) {
         if (!orientedRange.cursor)
@@ -309,17 +350,34 @@ var Editor = require("./editor").Editor;
         return orientedRange;
     };
 
+    /** extension
+     * Editor.removeSelectionMarker(range) 
+     * - range (Range): The selection range added with [[Editor.addSelectionMarker `addSelectionMarker()`]].
+     *
+     * Removes the selection marker.
+     **/
+    this.removeSelectionMarker = function(range) {
+        if (!range.marker)
+            return;
+        this.session.removeMarker(range.marker);
+        var index = this.session.$selectionMarkers.indexOf(range);
+        if (index != -1)
+            this.session.$selectionMarkers.splice(index, 1);
+        this.session.selectionMarkerCount = this.session.$selectionMarkers.length;
+    };
+
     this.removeSelectionMarkers = function(ranges) {
+        var markerList = this.session.$selectionMarkers;
         for (var i = ranges.length; i--; ) {
             var range = ranges[i];
             if (!range.marker)
                 continue;
             this.session.removeMarker(range.marker);
-            var index = this.session.$selectionMarkers.indexOf(range);
+            var index = markerList.indexOf(range);
             if (index != -1)
-                this.session.$selectionMarkers.splice(index, 1);
+                markerList.splice(index, 1);
         }
-        this.session.selectionMarkerCount = this.session.$selectionMarkers.length;
+        this.session.selectionMarkerCount = markerList.length;
     };
 
     this.$onAddRange = function(e) {
@@ -327,33 +385,33 @@ var Editor = require("./editor").Editor;
         this.renderer.updateCursor();
         this.renderer.updateBackMarkers();
     };
-    
+
     this.$onRemoveRange = function(e) {
         this.removeSelectionMarkers(e.ranges);
         this.renderer.updateCursor();
         this.renderer.updateBackMarkers();
     };
-    
+
     this.$onMultiSelect = function(e) {
         if (this.inMultiSelectMode)
             return;
         this.inMultiSelectMode = true;
 
         this.setStyle("multiselect");
-        this.keyBinding.addKeyboardHandler(exports.commands.keyboardHandler);
+        this.keyBinding.addKeyboardHandler(commands.keyboardHandler);
         this.commands.on("exec", this.$onMultiSelectExec);
 
         this.renderer.updateCursor();
         this.renderer.updateBackMarkers();
     };
-    
+
     this.$onSingleSelect = function(e) {
         if (this.session.multiSelect.inVirtualMode)
             return;
         this.inMultiSelectMode = false;
 
         this.unsetStyle("multiselect");
-        this.keyBinding.removeKeyboardHandler(exports.commands.keyboardHandler);
+        this.keyBinding.removeKeyboardHandler(commands.keyboardHandler);
 
         this.commands.removeEventListener("exec", this.$onMultiSelectExec);
         this.renderer.updateCursor();
@@ -363,6 +421,8 @@ var Editor = require("./editor").Editor;
     this.$onMultiSelectExec = function(e) {
         var command = e.command;
         var editor = e.editor;
+        if (!editor.multiSelect)
+            return;
         if (!command.multiSelectAction) {
             command.exec(editor, e.args || {});
             editor.multiSelect.addRange(editor.multiSelect.toOrientedRange());
@@ -378,12 +438,12 @@ var Editor = require("./editor").Editor;
         e.preventDefault();
     };
 
-    /**
-     * Editor.forEachSelection(cmd, args) -> Void
-     * - cmd: command to execute
-     * - args: arguments to the command
+    /** extension
+     * Editor.forEachSelection(cmd, args) 
+     * - cmd (String): The command to execute
+     * - args (String): Any arguments for the command
      *
-     * executes command for each selection range
+     * Executes a command for each selection range.
      **/
     this.forEachSelection = function(cmd, args) {
         if (this.inVirtualSelectionMode)
@@ -414,11 +474,11 @@ var Editor = require("./editor").Editor;
         this.onCursorChange();
         this.onSelectionChange();
     };
-    
-    /**
+
+    /** extension
     * Editor.exitMultiSelectMode() -> Void
     *
-    * removes all selections except the last added one.
+    * Removes all the selections except the last added one.
     **/
     this.exitMultiSelectMode = function() {
         if (this.inVirtualSelectionMode)
@@ -442,14 +502,68 @@ var Editor = require("./editor").Editor;
         return text;
     };
 
+    // todo this should change when paste becomes a command
+    this.onPaste = function(text) {
+        if (this.$readOnly) 
+            return;
+
+        this._emit("paste", text);
+        if (!this.inMultiSelectMode)
+            return this.insert(text);
+
+        var lines = text.split(/\r\n|\r|\n/);
+        var ranges = this.selection.rangeList.ranges;
+
+        if (lines.length > ranges.length || (lines.length <= 2 || !lines[1]))
+            return this.commands.exec("insertstring", this, text);
+
+        for (var i = ranges.length; i--; ) {
+            var range = ranges[i];
+            if (!range.isEmpty())
+                this.session.remove(range);
+
+            this.session.insert(range.start, lines[i]);
+        }
+    };
+
+    /** extension
+     * Editor.findAll(needle, options, additive) -> Number
+     * - needle (String): The text to find
+     * - options (Object): The search options
+     * - additive (Boolean): keeps
+     *
+     * Finds and selects all the occurences of `needle`.
+     **/
+    this.findAll = function(needle, options, additive) {
+        options = options || {};
+        options.needle = needle || options.needle;
+        this.$search.set(options);
+
+        var ranges = this.$search.findAll(this.session);
+        if (!ranges.length)
+            return 0;
+
+        this.$blockScrolling += 1;
+        var selection = this.multiSelect;
+
+        if (!additive)
+            selection.toSingleRange(ranges[0]);
+
+        for (var i = ranges.length; i--; )
+            selection.addRange(ranges[i], true);
+
+        this.$blockScrolling -= 1;
+
+        return ranges.length;
+    };
 
     // commands
-    /**
-     * Editor.selectMoreLines(dir, skip) -> Void
-     * - dir: -1 up, 1 down
-     * - skip: remove active selection range if true
+    /** extension
+     * Editor.selectMoreLines(dir, skip) 
+     * - dir (Number): The direction of lines to select: -1 for up, 1 for down
+     * - skip (Boolean): If `true`, removes the active selection range
      *
-     * adds cursor above or bellow active cursor
+     * Adds a cursor above or below the active cursor.
      **/
     this.selectMoreLines = function(dir, skip) {
         var range = this.selection.toOrientedRange();
@@ -489,12 +603,11 @@ var Editor = require("./editor").Editor;
             this.selection.substractPoint(toRemove);
     };
 
-    /**
-     * Editor.transposeSelections(dir) -> Void
-     * - dir: direction to rotate selections
+    /** extension
+     * Editor.transposeSelections(dir) 
+     * - dir (Number): The direction to rotate selections
      *
-     * contents 
-     * empty ranges are expanded to word
+     * Transposes the selected ranges. 
      **/
     this.transposeSelections = function(dir) {
         var session = this.session;
@@ -512,7 +625,7 @@ var Editor = require("./editor").Editor;
             }
         }
         sel.mergeOverlappingRanges();
-        
+
         var words = [];
         for (var i = all.length; i--; ) {
             var range = all[i];
@@ -533,13 +646,12 @@ var Editor = require("./editor").Editor;
         }
     }
 
-    /**
-     * Editor.selectMore(dir, skip) -> Void
-     * - dir: 1 next, -1 previous
-     * - skip: remove active selection range if true
+    /** extension
+     * Editor.selectMore(dir, skip) 
+     * - dir (Number): The direction of lines to select: -1 for up, 1 for down
+     * - skip (Boolean): If `true`, removes the active selection range
      *
-     * finds next occurence of text in active selection
-     * and adds it to the selections
+     * Finds the next occurence of text in an active selection and adds it to the selections.
      **/
     this.selectMore = function (dir, skip) {
         var session = this.session;
@@ -606,12 +718,9 @@ exports.onSessionChange = function(e) {
     }
 };
 
-/**
- * MultiSelect(editor) -> Void
- *
- * adds multiple selection support to the editor
- * (note: should be called only once for each editor instance)
- **/
+// MultiSelect(editor) 
+// adds multiple selection support to the editor
+// (note: should be called only once for each editor instance)
 function MultiSelect(editor) {
     editor.$onAddRange = editor.$onAddRange.bind(editor);
     editor.$onRemoveRange = editor.$onRemoveRange.bind(editor);
@@ -622,7 +731,34 @@ function MultiSelect(editor) {
     editor.on("changeSession", exports.onSessionChange.bind(editor));
 
     editor.on("mousedown", onMouseDown);
-    editor.commands.addCommands(exports.commands.defaultCommands);
+    editor.commands.addCommands(commands.defaultCommands);
+
+    addAltCursorListeners(editor);
+}
+
+function addAltCursorListeners(editor){
+    var el = editor.textInput.getElement();
+    var altCursor = false;
+    var contentEl = editor.renderer.content;
+    event.addListener(el, "keydown", function(e) {
+        if (e.keyCode == 18 && !(e.ctrlKey || e.shiftKey || e.metaKey)) {
+            if (!altCursor) {
+                contentEl.style.cursor = "crosshair";
+                altCursor = true;
+            }
+        } else if (altCursor) {
+            contentEl.style.cursor = "";
+        }
+    });
+
+    event.addListener(el, "keyup", reset);
+    event.addListener(el, "blur", reset);
+    function reset() {
+        if (altCursor) {
+            contentEl.style.cursor = "";
+            altCursor = false;
+        }
+    }
 }
 
 exports.MultiSelect = MultiSelect;

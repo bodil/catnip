@@ -79,7 +79,7 @@ exports.defaultCommands = [{
     exec: function(editor) { editor.selectMore(1, true); },
     bindKey: {win: "Ctrl-Alt-Shift-Right", mac: "Ctrl-Alt-Shift-Right"},
     readonly: true
-},  {
+}, {
     name: "splitIntoLines",
     exec: function(editor) { editor.multiSelect.splitIntoLines(); },
     bindKey: {win: "Ctrl-Shift-L", mac: "Ctrl-Shift-L"},
@@ -87,14 +87,15 @@ exports.defaultCommands = [{
 }];
 
 // commands active in multiselect mode
-exports.multiEditCommands = [{
+exports.multiSelectCommands = [{
     name: "singleSelection",
     bindKey: "esc",
     exec: function(editor) { editor.exitMultiSelectMode(); },
-    readonly: true
+    readonly: true,
+    isAvailable: function(editor) {return editor && editor.inMultiSelectMode}
 }];
 
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
-exports.keyboardHandler = new HashHandler(exports.multiEditCommands);
+exports.keyboardHandler = new HashHandler(exports.multiSelectCommands);
 
 });

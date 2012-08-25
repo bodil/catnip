@@ -1,5 +1,6 @@
 (defproject catnip "0.3.0-SNAPSHOT"
-  :plugins [[lein-cljsbuild "0.2.5"]]
+  :plugins [[lein-cljsbuild "0.2.5"]
+            [lein-exec "0.2.1"]]
   :description "The irresistible Clojure IDE-in-a-plugin"
   :url "https://github.com/bodil/catnip"
   :license {:name "Mozilla Public License"

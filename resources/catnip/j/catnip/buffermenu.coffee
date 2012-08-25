@@ -19,7 +19,7 @@ define ["jquery", "ace/lib/event_emitter"
 
     updateList: =>
       @list.html("")
-      @buffers = @editor.getBufferHistory()
+      @buffers = @editor.getBufferHistory()[...12]
       @nodes = @buffers.map (buffer) =>
         node = $("<li></li>").addClass("item").html('<i class="icon-empty"></i> ' + buffer)
         @list.append(node)
@@ -42,4 +42,4 @@ define ["jquery", "ace/lib/event_emitter"
         else if (e.target == @newItem[0])
           @editor.createFile()
       else
-        @editor.loadBuffer(@buffers[index])
+        @editor.openBuffer(@buffers[index])

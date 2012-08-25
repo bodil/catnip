@@ -18,6 +18,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     constructor: (element, @socket) ->
       super(new Renderer(element, theme_chrome))
       new MultiSelect(this)
+      @setDisplayIndentGuides(false)
 
       @buffers = {}
       @bufferHistory = []
@@ -27,6 +28,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @focus()
 
       $(window).on "popstate", @onWindowHistoryPopState
+
+      $(window).on "beforeunload", @onWindowBeforeUnload
 
       @socket.on "message", @onSocketMessage
       @socket.profile()
@@ -173,10 +176,12 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
     saveBuffer: (e) =>
       e?.preventDefault()
+      @session.dirty = false
       @socket.saveBuffer(@session.bufferName, @session.getValue())
 
     saveAndTest: (e) =>
       e?.preventDefault()
+      @session.dirty = false
       @socket.saveBuffer(@session.bufferName, @session.getValue(), "test")
 
     evalBuffer: (e) =>
@@ -214,7 +219,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     selectBuffer: (e) =>
       e?.preventDefault()
       list = @getBufferHistory()
-      new FileSelector(list, list).on("selected", @onFileSelected)
+      new FileSelector(list, list).on "selected", (e) =>
+        if not e.cancelled
+          @openBuffer(e.selected)
+        else
+          @focus()
 
     pushBufferHistory: (path, no_window_history) =>
       @bufferHistory = (x for x in @bufferHistory when x != path)
@@ -227,6 +236,18 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     getBufferHistory: =>
       (x for x in @bufferHistory when @buffers[x]?)
 
+    createSession: (path, content) =>
+      mode = modemap[fileExtension(path)]
+      session = new edit_session.EditSession(content, if mode then new mode)
+      session.setUndoManager(new undomanager.UndoManager())
+      session.setUseSoftTabs(true)
+      session.setTabSize(2)
+      session.bufferName = path
+      session.dirty = false
+      session.on "change", ->
+        session.dirty = true
+      session
+
     openBuffer: (path, content, tag) =>
       @session._storedCursorPos = @getCursorPosition()
       filename = path.split("/").pop()
@@ -234,15 +255,9 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       window.document.title = "#{path} : Catnip"
       if @buffers[path]?
         session = @buffers[path]
-        session.setValue(content)
+        session.setValue(content) if content
       else
-        mode = modemap[fileExtension(path)]
-        session = new edit_session.EditSession(content, if mode then new mode)
-        session.setUndoManager(new undomanager.UndoManager())
-        @buffers[path] = session
-        session.setUseSoftTabs(true)
-        session.setTabSize(2)
-        session.bufferName = path
+        @buffers[path] = session = @createSession(path, content)
       @setSession(session)
       @pushBufferHistory(path, tag == "window-history")
       if session._storedCursorPos?
@@ -297,3 +312,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
           cmd = line.match(keybindings.completeRe)[0]
           @selection.selectTo(pos.row, pos.column - cmd.length)
           @insert(@snippet(e.selected))
+
+    onWindowBeforeUnload: (e) =>
+      for own path, session of @buffers
+        if session.dirty
+          return e.returnValue = "Buffer \"#{path}\" has been modified."

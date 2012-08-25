@@ -57,9 +57,8 @@ function HashHandler(config, platform) {
 
         this.commands[command.name] = command;
 
-        if (command.bindKey) {
+        if (command.bindKey)
             this._buildKeyHash(command);
-        }
     };
 
     this.removeCommand = function(command) {
@@ -76,6 +75,22 @@ function HashHandler(config, platform) {
                     delete ckb[hashId][key];
             }
         }
+    };
+
+    this.bindKey = function(key, command) {
+        if(!key)
+            return;
+        if (typeof command == "function") {
+            this.addCommand({exec: command, bindKey: key, name: key});
+            return;
+        }
+
+        var ckb = this.commmandKeyBinding;
+        key.split("|").forEach(function(keyPart) {
+            var binding = this.parseKeys(keyPart, command);
+            var hashId = binding.hashId;
+            (ckb[hashId] || (ckb[hashId] = {}))[binding.key] = command;
+        }, this);
     };
 
     this.addCommands = function(commands) {
@@ -100,18 +115,6 @@ function HashHandler(config, platform) {
         }, this);
     };
 
-    this.bindKey = function(key, command) {
-        if(!key)
-            return;
-
-        var ckb = this.commmandKeyBinding;
-        key.split("|").forEach(function(keyPart) {
-            var binding = parseKeys(keyPart, command);
-            var hashId = binding.hashId;
-            (ckb[hashId] || (ckb[hashId] = {}))[binding.key] = command;
-        });
-    };
-
     this.bindKeys = function(keyList) {
         Object.keys(keyList).forEach(function(key) {
             this.bindKey(key, keyList[key]);
@@ -127,10 +130,10 @@ function HashHandler(config, platform) {
         this.bindKey(key, command);
     };
 
-    function parseKeys(keys, val, ret) {
+    this.parseKeys = function(keys) {
         var key;
         var hashId = 0;
-        var parts = splitSafe(keys.toLowerCase());
+        var parts = keys.toLowerCase().trim().split(/\s*\-\s*/);
 
         for (var i = 0, l = parts.length; i < l; i++) {
             if (keyUtil.KEY_MODS[parts[i]])
@@ -139,21 +142,21 @@ function HashHandler(config, platform) {
                 key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
         }
 
+        if (parts[0] == "text" && parts.length == 2) {
+            hashId = -1;
+            key = parts[1];
+        }
+
         return {
             key: key,
             hashId: hashId
         };
-    }
-
-    function splitSafe(s) {
-        return (s.trim()
-            .split(new RegExp("[\\s ]*\\-[\\s ]*", "g"), 999));
-    }
+    };
 
     this.findKeyCommand = function findKeyCommand(hashId, keyString) {
         var ckbr = this.commmandKeyBinding;
         return ckbr[hashId] && ckbr[hashId][keyString.toLowerCase()];
-    }
+    };
 
     this.handleKeyboard = function(data, hashId, keyString, keyCode) {
         return {

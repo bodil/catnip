@@ -51,16 +51,65 @@ var TextMode = require("./mode/text").Mode;
 var Range = require("./range").Range;
 var Document = require("./document").Document;
 var BackgroundTokenizer = require("./background_tokenizer").BackgroundTokenizer;
+var SearchHighlight = require("./search_highlight").SearchHighlight;
+
+/**
+ * class EditSession
+ *
+ * Stores all the data about [[Editor `Editor`]] state providing easy way to change editors state.  `EditSession` can be attached to only one [[Document `Document`]]. Same `Document` can be attached to several `EditSession`s.
+ *
+ **/
+
+// events 
+/**
+ * EditSession@change(e)
+ *
+ * Emitted when the document changes.
+ **/
+/**
+ * EditSession@tokenizerUpdate(e)
+ *
+ * Emitted when a background tokenizer asynchronousely processes new rows.
+ *
+ **/
+/**
+ * EditSession@changeFold(e)
+ *
+ * Emitted when a code fold added or removed.
+ *
+ **/
+ /**
+ * EditSession@changeScrollTop() 
+ * 
+ * Emitted when the scroll top changes.
+ **/
+/**
+ * EditSession@changeScrollLeft() 
+ * 
+ * Emitted when the scroll left changes.
+ **/
+     
+     
+/**
+ * new EditSession(text, mode)
+ * - text (Document | String): If `text` is a `Document`, it associates the `EditSession` with it. Otherwise, a new `Document` is created, with the initial text
+ * - mode (TextMode): The inital language mode to use for the document
+ *
+ * Sets up a new `EditSession` and associates it with the given `Document` and `TextMode`.
+ *
+ **/
 
 var EditSession = function(text, mode) {
     this.$modified = true;
     this.$breakpoints = [];
+    this.$decorations = [];
     this.$frontMarkers = {};
     this.$backMarkers = {};
     this.$markerId = 1;
-    this.$rowCache = [];
+    this.$resetRowCache(0);
     this.$wrapData = [];
     this.$foldData = [];
+    this.$rowLengthCache = [];
     this.$undoSelect = true;
     this.$foldData.toString = function() {
         var str = "";
@@ -70,17 +119,14 @@ var EditSession = function(text, mode) {
         return str;
     }
 
-    if (text instanceof Document) {
+    if (typeof text == "object" && text.getLine) {
         this.setDocument(text);
     } else {
         this.setDocument(new Document(text));
     }
 
     this.selection = new Selection(this);
-    if (mode)
-        this.setMode(mode);
-    else
-        this.setMode(new TextMode());
+    this.setMode(mode);
 };
 
 
@@ -88,6 +134,13 @@ var EditSession = function(text, mode) {
 
     oop.implement(this, EventEmitter);
 
+    /**
+     * EditSession.setDocument(doc)
+     * - doc (Document): The new `Document` to use
+     *
+     * Sets the `EditSession` to point to a new `Document`. If a `BackgroundTokenizer` exists, it also points to `doc`.
+     *
+     **/
     this.setDocument = function(doc) {
         if (this.doc)
             throw new Error("Document is already set");
@@ -102,22 +155,54 @@ var EditSession = function(text, mode) {
         }
     };
 
+    /**
+     * EditSession.getDocument() -> Document
+     *
+     * Returns the `Document` associated with this session.
+     *
+     **/
     this.getDocument = function() {
         return this.doc;
     };
 
-    this.$resetRowCache = function(row) {
-        if (row == 0) {
-            this.$rowCache = [];
+    /** internal, hide
+     * EditSession.$resetRowCache(row)
+     * - row (Number): The row to work with
+     *
+     *
+     *
+     **/
+    this.$resetRowCache = function(docRrow) {
+        if (!docRrow) {
+            this.$docRowCache = [];
+            this.$screenRowCache = [];
             return;
         }
-        var rowCache = this.$rowCache;
-        for (var i = 0; i < rowCache.length; i++) {
-            if (rowCache[i].docRow >= row) {
-                rowCache.splice(i, rowCache.length);
-                return;
-            }
+
+        var i = this.$getRowCacheIndex(this.$docRowCache, docRrow) + 1;
+        var l = this.$docRowCache.length;
+        this.$docRowCache.splice(i, l);
+        this.$screenRowCache.splice(i, l);
+
+    };
+
+    this.$getRowCacheIndex = function(cacheArray, val) {
+        var low = 0;
+        var hi = cacheArray.length - 1;
+
+        while (low <= hi) {
+            var mid = (low + hi) >> 1;
+            var c = cacheArray[mid];
+
+            if (val > c)
+                low = mid + 1;
+            else if (val < c)
+                hi = mid - 1;
+            else
+                return mid;
         }
+
+        return low && low -1;
     };
 
     this.onChangeFold = function(e) {
@@ -144,10 +229,17 @@ var EditSession = function(text, mode) {
             this.$informUndoManager.schedule();
         }
 
-        this.bgTokenizer.start(delta.range.start.row);
+        this.bgTokenizer.$updateOnChange(delta);
         this._emit("change", e);
     };
 
+    /**
+    * EditSession.setValue(text)
+    * - text (String): The new text to place
+    *
+    * Sets the session text.
+    *
+    **/
     this.setValue = function(text) {
         this.doc.setValue(text);
         this.selection.moveCursorTo(0, 0);
@@ -160,25 +252,63 @@ var EditSession = function(text, mode) {
         this.getUndoManager().reset();
     };
 
+    /** alias of: EditSession.toString
+    * EditSession.getValue() -> String
+    *
+    * Returns the current [[Document `Document`]] as a string.
+    *
+    **/
+    /** alias of: EditSession.getValue
+    * EditSession.toString() -> String
+    *
+    * Returns the current [[Document `Document`]] as a string.
+    *
+    **/
     this.getValue =
     this.toString = function() {
         return this.doc.getValue();
     };
 
+    /**
+    * EditSession.getSelection() -> String
+    *
+    * Returns the string of the current selection.
+    **/
     this.getSelection = function() {
         return this.selection;
     };
 
+    /** related to: BackgroundTokenizer.getState
+     * EditSession.getState(row) -> Array
+     * - row (Number): The row to start at
+     *
+     * {:BackgroundTokenizer.getState}
+     *
+     **/
     this.getState = function(row) {
         return this.bgTokenizer.getState(row);
     };
 
-    this.getTokens = function(firstRow, lastRow) {
-        return this.bgTokenizer.getTokens(firstRow, lastRow);
+    /** related to: BackgroundTokenizer.getTokens
+    * EditSession.getTokens(row) -> Array
+     * - row (Number): The row to start at
+     *
+     * Starts tokenizing at the row indicated. Returns a list of objects of the tokenized rows.
+     *
+     **/
+    this.getTokens = function(row) {
+        return this.bgTokenizer.getTokens(row);
     };
 
+    /**
+    * EditSession.getTokenAt(row, column) -> Array
+    * - row (Number): The row number to retrieve from
+    * - column (Number): The column number to retrieve from
+    *
+    * Returns an array of tokens at the indicated row and column.
+    **/
     this.getTokenAt = function(row, column) {
-        var tokens = this.bgTokenizer.getTokens(row, row)[0].tokens;
+        var tokens = this.bgTokenizer.getTokens(row);
         var token, c = 0;
         if (column == null) {
             i = tokens.length - 1;
@@ -198,9 +328,21 @@ var EditSession = function(text, mode) {
         return token;
     };
 
+    this.highlight = function(re) {
+        if (!this.$searchHighlight) {
+            var highlight = new SearchHighlight(null, "ace_selected_word", "text");
+            this.$searchHighlight = this.addDynamicMarker(highlight);
+        }
+        this.$searchHighlight.setRegexp(re);
+    }
+    /**
+    * EditSession.setUndoManager(undoManager)
+    * - undoManager (UndoManager): The new undo manager
+    *
+    * Sets the undo manager.
+    **/
     this.setUndoManager = function(undoManager) {
         this.$undoManager = undoManager;
-        this.$resetRowCache(0);
         this.$deltas = [];
         this.$deltasDoc = [];
         this.$deltasFold = [];
@@ -210,6 +352,11 @@ var EditSession = function(text, mode) {
 
         if (undoManager) {
             var self = this;
+    /** internal, hide
+    * EditSession.$syncInformUndoManager()
+    *
+    *
+    **/
             this.$syncInformUndoManager = function() {
                 self.$informUndoManager.cancel();
 
@@ -249,10 +396,20 @@ var EditSession = function(text, mode) {
         reset: function() {}
     };
 
+    /**
+    * EditSession.getUndoManager() -> UndoManager
+    *
+    * Returns the current undo manager.
+    **/
     this.getUndoManager = function() {
         return this.$undoManager || this.$defaultUndoManager;
     },
 
+    /**
+    * EditSession.getTabString() -> String
+    *
+    * Returns the current value for tabs. If the user is using soft tabs, this will be a series of spaces (defined by [[EditSession.getTabSize `getTabSize()`]]); otherwise it's simply `'\t'`.
+    **/
     this.getTabString = function() {
         if (this.getUseSoftTabs()) {
             return lang.stringRepeat(" ", this.getTabSize());
@@ -262,34 +419,72 @@ var EditSession = function(text, mode) {
     };
 
     this.$useSoftTabs = true;
+    /**
+    * EditSession.setUseSoftTabs(useSoftTabs)
+    * - useSoftTabs (Boolean): Value indicating whether or not to use soft tabs
+    *
+    * Pass `true` to enable the use of soft tabs. Soft tabs means you're using spaces instead of the tab character (`'\t'`).
+    *
+    **/
     this.setUseSoftTabs = function(useSoftTabs) {
         if (this.$useSoftTabs === useSoftTabs) return;
 
         this.$useSoftTabs = useSoftTabs;
     };
 
+    /**
+    * EditSession.getUseSoftTabs() -> Boolean
+    *
+    * Returns `true` if soft tabs are being used, `false` otherwise.
+    *
+    **/
     this.getUseSoftTabs = function() {
         return this.$useSoftTabs;
     };
 
     this.$tabSize = 4;
+    /**
+    * EditSession.setTabSize(tabSize)
+    * - tabSize (Number): The new tab size
+    *
+    * Set the number of spaces that define a soft tab; for example, passing in `4` transforms the soft tabs to be equivalent to four spaces. This function also emits the `changeTabSize` event.
+    **/
     this.setTabSize = function(tabSize) {
         if (isNaN(tabSize) || this.$tabSize === tabSize) return;
 
         this.$modified = true;
+        this.$rowLengthCache = [];
         this.$tabSize = tabSize;
         this._emit("changeTabSize");
     };
 
+    /**
+    * EditSession.getTabSize() -> Number
+    *
+    * Returns the current tab size.
+    **/
     this.getTabSize = function() {
         return this.$tabSize;
     };
 
+    /**
+    * EditSession.isTabStop(position) -> Boolean
+    * - position (Object): The position to check
+    *
+    * Returns `true` if the character at the position is a soft tab.
+    **/
     this.isTabStop = function(position) {
         return this.$useSoftTabs && (position.column % this.$tabSize == 0);
     };
 
     this.$overwrite = false;
+    /**
+    * EditSession.setOverwrite(overwrite)
+    * - overwrite (Boolean): Defines wheter or not to set overwrites
+    *
+    * Pass in `true` to enable overwrites in your session, or `false` to disable. If overwrites is enabled, any text you enter will type over any text after it. If the value of `overwrite` changes, this function also emites the `changeOverwrite` event.
+    *
+    **/
     this.setOverwrite = function(overwrite) {
         if (this.$overwrite == overwrite) return;
 
@@ -297,45 +492,122 @@ var EditSession = function(text, mode) {
         this._emit("changeOverwrite");
     };
 
+    /**
+    * EditSession.getOverwrite() -> Boolean
+    *
+    * Returns `true` if overwrites are enabled; `false` otherwise.
+    **/
     this.getOverwrite = function() {
         return this.$overwrite;
     };
 
+    /**
+    * EditSession.toggleOverwrite()
+    *
+    * Sets the value of overwrite to the opposite of whatever it currently is.
+    **/
     this.toggleOverwrite = function() {
         this.setOverwrite(!this.$overwrite);
     };
 
+    /**
+    * EditSession.addGutterDecoration(row, className) -> Void
+    * - row (Number): The row number
+    * - className (String): The class to add
+    *
+    * Adds `className` to the `row`, to be used for CSS stylings and whatnot.
+    **/
+    this.addGutterDecoration = function(row, className) {
+        if (!this.$decorations[row])
+            this.$decorations[row] = "";
+        this.$decorations[row] += " " + className;
+        this._emit("changeBreakpoint", {});
+    };
+
+    /**
+    * EditSession.removeGutterDecoration(row, className)-> Void
+    * - row (Number): The row number
+    * - className (String): The class to add
+    *
+    * Removes `className` from the `row`.
+    **/
+    this.removeGutterDecoration = function(row, className) {
+        this.$decorations[row] = (this.$decorations[row] || "").replace(" " + className, "");
+        this._emit("changeBreakpoint", {});
+    };
+    
+    /**
+    * EditSession.getBreakpoints() -> Array
+    *
+    * Returns an array of numbers, indicating which rows have breakpoints.
+    **/
     this.getBreakpoints = function() {
         return this.$breakpoints;
     };
 
+    /**
+    * EditSession.setBreakpoints(rows)
+    * - rows (Array): An array of row indicies
+    *
+    * Sets a breakpoint on every row number given by `rows`. This function also emites the `'changeBreakpoint'` event.
+    *
+    **/
     this.setBreakpoints = function(rows) {
         this.$breakpoints = [];
         for (var i=0; i<rows.length; i++) {
-            this.$breakpoints[rows[i]] = true;
+            this.$breakpoints[rows[i]] = "ace_breakpoint";
         }
         this._emit("changeBreakpoint", {});
     };
 
+    /**
+    * EditSession.clearBreakpoints()
+    *
+    * Removes all breakpoints on the rows. This function also emites the `'changeBreakpoint'` event.
+    **/
     this.clearBreakpoints = function() {
         this.$breakpoints = [];
         this._emit("changeBreakpoint", {});
     };
 
-    this.setBreakpoint = function(row) {
-        this.$breakpoints[row] = true;
+    /**
+    * EditSession.setBreakpoint(row, className)
+    * - row (Number): A row index
+    * - className (String): Class of the breakpoint
+    *
+    * Sets a breakpoint on the row number given by `rows`. This function also emites the `'changeBreakpoint'` event.
+    **/
+    this.setBreakpoint = function(row, className) {
+        if (className === undefined)
+            className = "ace_breakpoint";
+        if (className)
+            this.$breakpoints[row] = className;
+        else
+            delete this.$breakpoints[row];
         this._emit("changeBreakpoint", {});
     };
 
+    /**
+    * EditSession.clearBreakpoint(row)
+    * - row (Number): A row index
+    *
+    * Removes a breakpoint on the row number given by `rows`. This function also emites the `'changeBreakpoint'` event.
+    **/
     this.clearBreakpoint = function(row) {
         delete this.$breakpoints[row];
         this._emit("changeBreakpoint", {});
     };
 
-    this.getBreakpoints = function() {
-        return this.$breakpoints;
-    };
-
+    /**
+    * EditSession.addMarker(range, clazz, type = "line", inFront) -> Number
+    * - range (Range): Define the range of the marker
+    * - clazz (String): Set the CSS class for the marker
+    * - type (Function | String): Identify the type of the marker
+    * - inFront (Boolean): Set to `true` to establish a front marker
+    *
+    * Adds a new marker to the given `Range`. If `inFront` is `true`, a front marker is defined, and the `'changeFrontMarker'` event fires; otherwise, the `'changeBackMarker'` event fires.
+    *
+    **/
     this.addMarker = function(range, clazz, type, inFront) {
         var id = this.$markerId++;
 
@@ -344,7 +616,8 @@ var EditSession = function(text, mode) {
             type : type || "line",
             renderer: typeof type == "function" ? type : null,
             clazz : clazz,
-            inFront: !!inFront
+            inFront: !!inFront,
+            id: id
         }
 
         if (inFront) {
@@ -358,6 +631,38 @@ var EditSession = function(text, mode) {
         return id;
     };
 
+    /**
+     * EditSession.addDynamicMarker(marker, inFront) -> Object
+     * - marker (Object): object with update method
+     * - inFront (Boolean): Set to `true` to establish a front marker
+     *
+     * Adds a dynamic marker to the session.
+     **/
+    this.addDynamicMarker = function(marker, inFront) {
+        if (!marker.update)
+            return;
+        var id = this.$markerId++;
+        marker.id = id;
+        marker.inFront = !!inFront;
+
+        if (inFront) {
+            this.$frontMarkers[id] = marker;
+            this._emit("changeFrontMarker")
+        } else {
+            this.$backMarkers[id] = marker;
+            this._emit("changeBackMarker")
+        }
+
+        return marker;
+    };
+
+    /**
+    * EditSession.removeMarker(markerId)
+    * - markerId (Number): A number representing a marker
+    *
+    * Removes the marker with the specified ID. If this marker was in front, the `'changeFrontMarker'` event is emitted. If the marker was in the back, the `'changeBackMarker'` event is emitted.
+    *
+    **/
     this.removeMarker = function(markerId) {
         var marker = this.$frontMarkers[markerId] || this.$backMarkers[markerId];
         if (!marker)
@@ -370,11 +675,18 @@ var EditSession = function(text, mode) {
         }
     };
 
+    /**
+    * EditSession.getMarkers(inFront) -> Array
+    * - inFront (Boolean): If `true`, indicates you only want front markers; `false` indicates only back markers
+    *
+    * Returns an array containing the IDs of all the markers, either front or back.
+    *
+    **/
     this.getMarkers = function(inFront) {
         return inFront ? this.$frontMarkers : this.$backMarkers;
     };
 
-    /**
+    /*
      * Error:
      *  {
      *    row: 12,
@@ -383,6 +695,12 @@ var EditSession = function(text, mode) {
      *    type: "error" // or "warning" or "info"
      *  }
      */
+    /**
+    * EditSession.setAnnotations(annotations)
+    * - annotations (Array): A list of annotations
+    *
+    * Sets annotations for the `EditSession`. This functions emits the `'changeAnnotation'` event.
+    **/
     this.setAnnotations = function(annotations) {
         this.$annotations = {};
         for (var i=0; i<annotations.length; i++) {
@@ -396,15 +714,32 @@ var EditSession = function(text, mode) {
         this._emit("changeAnnotation", {});
     };
 
+    /**
+    * EditSession.getAnnotations() -> Object
+    *
+    * Returns the annotations for the `EditSession`.
+    **/
     this.getAnnotations = function() {
         return this.$annotations || {};
     };
 
+    /**
+    * EditSession.clearAnnotations()
+    *
+    * Clears all the annotations for this session. This function also triggers the `'changeAnnotation'` event.
+    **/
     this.clearAnnotations = function() {
         this.$annotations = {};
         this._emit("changeAnnotation", {});
     };
 
+    /** internal, hide
+    * EditSession.$detectNewLine(text)
+    * - text (String): A block of text
+    *
+    * If `text` contains either the newline (`\n`) or carriage-return ('\r') characters, `$autoNewLine` stores that value.
+    *
+    **/
     this.$detectNewLine = function(text) {
         var match = text.match(/^.*?(\r?\n)/m);
         if (match) {
@@ -414,19 +749,30 @@ var EditSession = function(text, mode) {
         }
     };
 
+    /**
+    * EditSession.getWordRange(row, column) -> Range
+    * - row (Number): The row to start at
+    * - column (Number): The column to start at
+    *
+    * Given a starting row and column, this method returns the `Range` of the first word boundary it finds.
+    *
+    **/
     this.getWordRange = function(row, column) {
         var line = this.getLine(row);
 
         var inToken = false;
-        if (column > 0) {
+        if (column > 0)
             inToken = !!line.charAt(column - 1).match(this.tokenRe);
-        }
 
-        if (!inToken) {
+        if (!inToken)
             inToken = !!line.charAt(column).match(this.tokenRe);
-        }
-
-        var re = inToken ? this.tokenRe : this.nonTokenRe;
+        
+        if (inToken)
+            var re = this.tokenRe;
+        else if (/^\s+$/.test(line.slice(column-1, column+1)))
+            var re = /\s/;
+        else
+            var re = this.nonTokenRe;
 
         var start = column;
         if (start > 0) {
@@ -445,7 +791,13 @@ var EditSession = function(text, mode) {
         return new Range(row, start, row, end);
     };
 
-    // Gets the range of a word including its right whitespace
+    /**
+    * EditSession.getAWordRange(row, column) -> Range
+    * - row (Number): The row number to start from
+    * - column (Number): The column number to start from
+    *
+    * Gets the range of a word, including its right whitespace.
+    **/
     this.getAWordRange = function(row, column) {
         var wordRange = this.getWordRange(row, column);
         var line = this.getLine(wordRange.end.row);
@@ -456,15 +808,34 @@ var EditSession = function(text, mode) {
         return wordRange;
     };
 
+    /** related to: Document.setNewLineMode
+    * EditSession.setNewLineMode(newLineMode)
+    * - newLineMode (String): {:Document.setNewLineMode.param}
+    *
+    * {:Document.setNewLineMode.desc}
+    **/
     this.setNewLineMode = function(newLineMode) {
         this.doc.setNewLineMode(newLineMode);
     };
 
+    /** related to: Document.getNewLineMode
+    * EditSession.getNewLineMode() -> String
+    *
+    * Returns the current new line mode.
+    **/
     this.getNewLineMode = function() {
         return this.doc.getNewLineMode();
     };
 
     this.$useWorker = true;
+
+    /**
+    * EditSession.setUseWorker(useWorker)
+    * - useWorker (Boolean): Set to `true` to use a worker
+    *
+    * Identifies if you want to use a worker for the `EditSession`.
+    *
+    **/
     this.setUseWorker = function(useWorker) {
         if (this.$useWorker == useWorker)
             return;
@@ -476,10 +847,20 @@ var EditSession = function(text, mode) {
             this.$startWorker();
     };
 
+    /**
+    * EditSession.getUseWorker() -> Boolean
+    *
+    * Returns `true` if workers are being used.
+    **/
     this.getUseWorker = function() {
         return this.$useWorker;
     };
 
+    /**
+    * EditSession.onReloadTokenizer(e)
+    *
+    * Reloads all the tokens on the current session. This function calls [[BackgroundTokenizer.start `BackgroundTokenizer.start ()`]] to all the rows; it also emits the `'tokenizerUpdate'` event.
+    **/
     this.onReloadTokenizer = function(e) {
         var rows = e.data;
         this.bgTokenizer.start(rows.first);
@@ -488,26 +869,35 @@ var EditSession = function(text, mode) {
 
     this.$modes = {};
     this._loadMode = function(mode, callback) {
+        if (!this.$modes["null"])
+            this.$modes["null"] = this.$modes["ace/mode/text"] = new TextMode();
+
         if (this.$modes[mode])
             return callback(this.$modes[mode]);
-        
+
         var _self = this;
         var module;
         try {
             module = require(mode);
         } catch (e) {};
-        if (module)
+        // sometimes require returns empty object (this bug is present in requirejs 2 as well)
+        if (module && module.Mode)
             return done(module);
-            
-        fetch(function() {
+
+        // set mode to text until loading is finished
+        if (!this.$mode)
+            this.$setModePlaceholder();
+
+        fetch(mode, function() {
             require([mode], done);
         });
-        
+
         function done(module) {
             if (_self.$modes[mode])
                 return callback(_self.$modes[mode]);
-            
+
             _self.$modes[mode] = new module.Mode();
+            _self.$modes[mode].$id = mode;
             _self._emit("loadmode", {
                 name: mode,
                 mode: _self.$modes[mode]
@@ -515,36 +905,63 @@ var EditSession = function(text, mode) {
             callback(_self.$modes[mode]);
         }
 
-        function fetch(callback) {
+        function fetch(name, callback) {
             if (!config.get("packaged"))
                 return callback();
-                
-            var base = mode.split("/").pop();
-            var filename = config.get("modePath") + "/mode-" + base + config.get("suffix");
-            net.loadScript(filename, callback);
+
+            net.loadScript(config.moduleUrl(name, "mode"), callback);
         }
     };
 
+    this.$setModePlaceholder = function() {
+        this.$mode = this.$modes["null"];
+        var tokenizer = this.$mode.getTokenizer();
+
+        if (!this.bgTokenizer) {
+            this.bgTokenizer = new BackgroundTokenizer(tokenizer);
+            var _self = this;
+            this.bgTokenizer.addEventListener("update", function(e) {
+                _self._emit("tokenizerUpdate", e);
+            });
+        } else {
+            this.bgTokenizer.setTokenizer(tokenizer);
+        }
+        this.bgTokenizer.setDocument(this.getDocument());
+
+        this.tokenRe = this.$mode.tokenRe;
+        this.nonTokenRe = this.$mode.nonTokenRe;
+    };
+
+    /**
+    * EditSession.setMode(mode)
+    * - mode (TextMode): Set a new text mode
+    *
+    * Sets a new text mode for the `EditSession`. This method also emits the `'changeMode'` event. If a [[BackgroundTokenizer `BackgroundTokenizer`]] is set, the `'tokenizerUpdate'` event is also emitted.
+    *
+    **/
     this.$mode = null;
-    this.$origMode = null;
+    this.$modeId = null;
     this.setMode = function(mode) {
-        this.$origMode = mode;
-        
+        mode = mode || "null";
         // load on demand
         if (typeof mode === "string") {
+            if (this.$modeId == mode)
+                return;
+
+            this.$modeId = mode;
             var _self = this;
             this._loadMode(mode, function(module) {
-                if (_self.$origMode !== mode)
+                if (_self.$modeId !== mode)
                     return;
-            
+
                 _self.setMode(module);
             });
             return;
         }
-        
+
         if (this.$mode === mode) return;
         this.$mode = mode;
-        
+        this.$modeId = mode.$id;
 
         this.$stopWorker();
 
@@ -579,6 +996,11 @@ var EditSession = function(text, mode) {
         this._emit("changeMode");
     };
 
+    /** internal, hide
+    * EditSession.stopWorker()
+    *
+    *
+    **/
     this.$stopWorker = function() {
         if (this.$worker)
             this.$worker.terminate();
@@ -586,6 +1008,11 @@ var EditSession = function(text, mode) {
         this.$worker = null;
     };
 
+    /** internal, hide
+    * EditSession.$startWorker()
+    *
+    *
+    **/
     this.$startWorker = function() {
         if (typeof Worker !== "undefined" && !require.noWorker) {
             try {
@@ -600,11 +1027,22 @@ var EditSession = function(text, mode) {
             this.$worker = null;
     };
 
+    /**
+    * EditSession.getMode() -> TextMode
+    *
+    * Returns the current text mode.
+    **/
     this.getMode = function() {
         return this.$mode;
     };
-    
+
     this.$scrollTop = 0;
+    /**
+    * EditSession.setScrollTop(scrollTop)
+    * - scrollTop (Number): The new scroll top value
+    *
+    * This function sets the scroll top value. It also emits the `'changeScrollTop'` event.
+    **/
     this.setScrollTop = function(scrollTop) {
         scrollTop = Math.round(Math.max(0, scrollTop));
         if (this.$scrollTop === scrollTop)
@@ -614,11 +1052,21 @@ var EditSession = function(text, mode) {
         this._emit("changeScrollTop", scrollTop);
     };
 
+    /**
+    * EditSession.getScrollTop() -> Number
+    *
+    * [Returns the value of the distance between the top of the editor and the topmost part of the visible content.]{: #EditSession.getScrollTop}
+    **/
     this.getScrollTop = function() {
         return this.$scrollTop;
     };
-    
+
     this.$scrollLeft = 0;
+    /**
+    * EditSession.setScrollLeft(scrollLeft)
+    *
+    * [Sets the value of the distance between the left of the editor and the leftmost part of the visible content.]{: #EditSession.setScrollLeft}
+    **/
     this.setScrollLeft = function(scrollLeft) {
         scrollLeft = Math.round(Math.max(0, scrollLeft));
         if (this.$scrollLeft === scrollLeft)
@@ -628,15 +1076,20 @@ var EditSession = function(text, mode) {
         this._emit("changeScrollLeft", scrollLeft);
     };
 
+    /**
+    * EditSession.getScrollLeft() -> Number
+    *
+    * [Returns the value of the distance between the left of the editor and the leftmost part of the visible content.]{: #EditSession.getScrollLeft}
+    **/
     this.getScrollLeft = function() {
         return this.$scrollLeft;
     };
 
-    this.getWidth = function() {
-        this.$computeWidth();
-        return this.width;
-    };
-
+    /**
+    * EditSession.getScreenWidth() -> Number
+    *
+    * Returns the width of the screen.
+    **/
     this.getScreenWidth = function() {
         this.$computeWidth();
         return this.screenWidth;
@@ -646,68 +1099,112 @@ var EditSession = function(text, mode) {
         if (this.$modified || force) {
             this.$modified = false;
 
+            if (this.$useWrapMode)
+                return this.screenWidth = this.$wrapLimit;
+
             var lines = this.doc.getAllLines();
-            var longestLine = 0;
+            var cache = this.$rowLengthCache;
             var longestScreenLine = 0;
+            var foldIndex = 0;
+            var foldLine = this.$foldData[foldIndex];
+            var foldStart = foldLine ? foldLine.start.row : Infinity;
+            var len = lines.length;
 
-            for ( var i = 0; i < lines.length; i++) {
-                var foldLine = this.getFoldLine(i),
-                    line, len;
-
-                line = lines[i];
-                if (foldLine) {
-                    var end = foldLine.range.end;
-                    line = this.getFoldDisplayLine(foldLine);
-                    // Continue after the foldLine.end.row. All the lines in
-                    // between are folded.
-                    i = end.row;
+            for (var i = 0; i < len; i++) {
+                if (i > foldStart) {
+                    i = foldLine.end.row + 1;
+                    if (i >= len)
+                        break;
+                    foldLine = this.$foldData[foldIndex++];
+                    foldStart = foldLine ? foldLine.start.row : Infinity;
                 }
-                len = line.length;
-                longestLine = Math.max(longestLine, len);
-                if (!this.$useWrapMode) {
-                    longestScreenLine = Math.max(
-                        longestScreenLine,
-                        this.$getStringScreenWidth(line)[0]
-                    );
-                }
-            }
-            this.width = longestLine;
 
-            if (this.$useWrapMode) {
-                this.screenWidth = this.$wrapLimit;
-            } else {
-                this.screenWidth = longestScreenLine;
+                if (cache[i] == null)
+                    cache[i] = this.$getStringScreenWidth(lines[i])[0];
+
+                if (cache[i] > longestScreenLine)
+                    longestScreenLine = cache[i];
             }
+            this.screenWidth = longestScreenLine;
         }
     };
 
-    /**
-     * Get a verbatim copy of the given line as it is in the document
-     */
+    /** related to: Document.getLine
+    * EditSession.getLine(row) -> String
+    * - row (Number): The row to retrieve from
+    *
+    * Returns a verbatim copy of the given line as it is in the document
+    *
+    **/
     this.getLine = function(row) {
         return this.doc.getLine(row);
     };
 
+    /** related to: Document.getLines
+    * EditSession.getLines(firstRow, lastRow) -> Array
+    * - firstRow (Number): The first row index to retrieve
+    * - lastRow (Number): The final row index to retrieve
+    *
+    * Returns an array of strings of the rows between `firstRow` and `lastRow`. This function is inclusive of `lastRow`.
+    *
+    **/
     this.getLines = function(firstRow, lastRow) {
         return this.doc.getLines(firstRow, lastRow);
     };
 
+    /** related to: Document.getLength
+    * EditSession.getLength()-> Number
+    *
+    * Returns the number of rows in the document.
+    **/
     this.getLength = function() {
         return this.doc.getLength();
     };
 
+    /** related to: Document.getTextRange
+    * EditSession.getTextRange(range) -> Array
+    * - range (String): The range to work with
+    *
+    * {:Document.getTextRange.desc}
+    **/
     this.getTextRange = function(range) {
-        return this.doc.getTextRange(range);
+        return this.doc.getTextRange(range || this.selection.getRange());
     };
 
+    /** related to: Document.insert
+    * EditSession.insert(position, text) -> Number
+    * - position (Number): The position to start inserting at
+    * - text (String): A chunk of text to insert
+    * + (Number): The position of the last line of `text`. If the length of `text` is 0, this function simply returns `position`.
+    *
+    * Inserts a block of `text` and the indicated `position`.
+    *
+    *
+    **/
     this.insert = function(position, text) {
         return this.doc.insert(position, text);
     };
 
+    /** related to: Document.remove
+    * EditSession.remove(range) -> Object
+    * - range (Range): A specified Range to remove
+    * + (Object): The new `start` property of the range, which contains `startRow` and `startColumn`. If `range` is empty, this function returns the unmodified value of `range.start`.
+    *
+    * Removes the `range` from the document.
+    *
+    *
+    **/
     this.remove = function(range) {
         return this.doc.remove(range);
     };
 
+    /**
+    * EditSession.undoChanges(deltas, dontSelect) -> Range
+    * - deltas (Array): An array of previous changes
+    * - dontSelect (Boolean): [If `true`, doesn't select the range of where the change occured]{: #dontSelect}
+    *
+    * Reverts previous changes to your document.
+    **/
     this.undoChanges = function(deltas, dontSelect) {
         if (!deltas.length)
             return;
@@ -734,6 +1231,13 @@ var EditSession = function(text, mode) {
         return lastUndoRange;
     };
 
+    /**
+    * EditSession.redoChanges(deltas, dontSelect) -> Range
+    * - deltas (Array): An array of previous changes
+    * - dontSelect (Boolean): {:dontSelect}
+    *
+    * Re-implements a previously undone change to your document.
+    **/
     this.redoChanges = function(deltas, dontSelect) {
         if (!deltas.length)
             return;
@@ -755,11 +1259,22 @@ var EditSession = function(text, mode) {
             this.selection.setSelectionRange(lastUndoRange);
         return lastUndoRange;
     };
-    
+
+    /**
+    * EditSession.setUndoSelect(enable)
+    * - enable (Boolean): If `true`, selects the range of the reinserted change
+    *
+    * ENables or disables highlighting of the range where an undo occured.
+    **/
     this.setUndoSelect = function(enable) {
         this.$undoSelect = enable;
     };
 
+    /** internal, hide
+    * EditSession.$getUndoSelection(deltas, isUndo, lastUndoRange) -> Range
+    *
+    *
+    **/
     this.$getUndoSelection = function(deltas, isUndo, lastUndoRange) {
         function isInsert(delta) {
             var insert =
@@ -814,19 +1329,36 @@ var EditSession = function(text, mode) {
         return range;
     },
 
+    /** related to: Document.replace
+    * EditSession.replace(range, text) -> Object
+    * - range (Range): A specified Range to replace
+    * - text (String): The new text to use as a replacement
+    * + (Object): Returns an object containing the final row and column, like this:<br/>
+    * ```{row: endRow, column: 0}```<br/>
+    * If the text and range are empty, this function returns an object containing the current `range.start` value.<br/>
+    * If the text is the exact same as what currently exists, this function returns an object containing the current `range.end` value.
+    *
+    * Replaces a range in the document with the new `text`.
+    *
+    *
+    *
+    **/
     this.replace = function(range, text) {
         return this.doc.replace(range, text);
     };
 
     /**
-     * Move a range of text from the given range to the given position.
-     *
-     * @param fromRange {Range} The range of text you want moved within the
-     * document.
-     * @param toPosition {Object} The location (row and column) where you want
-     * to move the text to.
-     * @return {Range} The new range where the text was moved to.
-     */
+    * EditSession.moveText(fromRange, toPosition) -> Range
+    * - fromRange (Range): The range of text you want moved within the document
+    * - toPosition (Object): The location (row and column) where you want to move the text to
+    * + (Range): The new range where the text was moved to.
+    * Moves a range of text from the given range to the given position. `toPosition` is an object that looks like this:
+    *
+    *    { row: newRowLocation, column: newColumnLocation }
+    *
+    *
+    *
+    **/
     this.moveText = function(fromRange, toPosition) {
         var text = this.getTextRange(fromRange);
         this.remove(fromRange);
@@ -857,12 +1389,30 @@ var EditSession = function(text, mode) {
         return toRange;
     };
 
+    /**
+    * EditSession.indentRows(startRow, endRow, indentString)
+    * - startRow (Number): Starting row
+    * - endRow (Number): Ending row
+    * - indentString (String): The indent token
+    *
+    * Indents all the rows, from `startRow` to `endRow` (inclusive), by prefixing each row with the token in `indentString`.
+    *
+    * If `indentString` contains the `'\t'` character, it's replaced by whatever is defined by [[EditSession.getTabString `getTabString()`]].
+    *
+    **/
     this.indentRows = function(startRow, endRow, indentString) {
         indentString = indentString.replace(/\t/g, this.getTabString());
         for (var row=startRow; row<=endRow; row++)
             this.insert({row: row, column:0}, indentString);
     };
 
+    /**
+    * EditSession.outdentRows(range)
+    * - range (Range): A range of rows
+    *
+    * Outdents all the rows defined by the `start` and `end` properties of `range`.
+    *
+    **/
     this.outdentRows = function (range) {
         var rowRange = range.collapseRows();
         var deleteRange = new Range(0, 0, 0, 0);
@@ -887,6 +1437,16 @@ var EditSession = function(text, mode) {
         }
     };
 
+    /** related to: Document.insertLines
+    * EditSession.moveLinesUp(firstRow, lastRow) -> Number
+    * - firstRow (Number): The starting row to move up
+    * - lastRow (Number): The final row to move up
+    * + (Number): If `firstRow` is less-than or equal to 0, this function returns 0. Otherwise, on success, it returns -1.
+    *
+    * Shifts all the lines in the document up one, starting from `firstRow` and ending at `lastRow`.
+    *
+    *
+    **/
     this.moveLinesUp = function(firstRow, lastRow) {
         if (firstRow <= 0) return 0;
 
@@ -895,6 +1455,15 @@ var EditSession = function(text, mode) {
         return -1;
     };
 
+    /** related to: Document.insertLines
+    * EditSession.moveLinesDown(firstRow, lastRow) -> Number
+    * - firstRow (Number): The starting row to move down
+    * - lastRow (Number): The final row to move down
+    * + (Number): If `firstRow` is less-than or equal to 0, this function returns 0. Otherwise, on success, it returns -1.
+    *
+    *
+    *
+    **/
     this.moveLinesDown = function(firstRow, lastRow) {
         if (lastRow >= this.doc.getLength()-1) return 0;
 
@@ -903,6 +1472,17 @@ var EditSession = function(text, mode) {
         return 1;
     };
 
+    /**
+    * EditSession.duplicateLines(firstRow, lastRow) -> Number
+    * - firstRow (Number): The starting row to duplicate
+    * - lastRow (Number): The final row to duplicate
+    * + (Number): Returns the number of new rows added; in other words, `lastRow - firstRow + 1`.
+    *
+    * Duplicates all the text between `firstRow` and `lastRow`.
+    *
+    *
+    *
+    **/
     this.duplicateLines = function(firstRow, lastRow) {
         var firstRow = this.$clipRowToDocument(firstRow);
         var lastRow = this.$clipRowToDocument(lastRow);
@@ -914,6 +1494,7 @@ var EditSession = function(text, mode) {
         return addedRows;
     };
 
+
     this.$clipRowToDocument = function(row) {
         return Math.max(0, Math.min(row, this.doc.getLength()-1));
     };
@@ -923,6 +1504,7 @@ var EditSession = function(text, mode) {
             return 0;
         return Math.min(this.doc.getLine(row).length, column);
     };
+
 
     this.$clipPositionToDocument = function(row, column) {
         column = Math.max(0, column);
@@ -949,14 +1531,14 @@ var EditSession = function(text, mode) {
     this.$clipRangeToDocument = function(range) {
         if (range.start.row < 0) {
             range.start.row = 0;
-            range.start.column = 0
+            range.start.column = 0;
         } else {
             range.start.column = this.$clipColumnToRow(
                 range.start.row,
                 range.start.column
             );
         }
-        
+
         var len = this.doc.getLength() - 1;
         if (range.end.row > len) {
             range.end.row = len;
@@ -978,6 +1560,12 @@ var EditSession = function(text, mode) {
         max : null
     };
 
+    /**
+    * EditSession.setUseWrapMode(useWrapMode)
+    * - useWrapMode (Boolean): Enable (or disable) wrap mode
+    *
+    * Sets whether or not line wrapping is enabled. If `useWrapMode` is different than the current value, the `'changeWrapMode'` event is emitted.
+    **/
     this.setUseWrapMode = function(useWrapMode) {
         if (useWrapMode != this.$useWrapMode) {
             this.$useWrapMode = useWrapMode;
@@ -998,6 +1586,11 @@ var EditSession = function(text, mode) {
         }
     };
 
+    /**
+    * EditSession.getUseWrapMode() -> Boolean
+    *
+    * Returns `true` if wrap mode is being used; `false` otherwise.
+    **/
     this.getUseWrapMode = function() {
         return this.$useWrapMode;
     };
@@ -1006,6 +1599,13 @@ var EditSession = function(text, mode) {
     // parameter can be null to allow the wrap limit to be unconstrained
     // in that direction. Or set both parameters to the same number to pin
     // the limit to that value.
+    /**
+    * EditSession.setWrapLimitRange(min, max)
+    * - min (Number): The minimum wrap value (the left side wrap)
+    * - max (Number): The maximum wrap value (the right side wrap)
+    *
+    * Sets the boundaries of wrap. Either value can be `null` to have an unconstrained wrap, or, they can be the same number to pin the limit. If the wrap limits for `min` or `max` are different, this method also emits the `'changeWrapMode'` event.
+    **/
     this.setWrapLimitRange = function(min, max) {
         if (this.$wrapLimitRange.min !== min || this.$wrapLimitRange.max !== max) {
             this.$wrapLimitRange.min = min;
@@ -1016,8 +1616,12 @@ var EditSession = function(text, mode) {
         }
     };
 
-    // This should generally only be called by the renderer when a resize
-    // is detected.
+    /** internal, hide
+    * EditSession.adjustWrapLimit(desiredLimit) -> Boolean
+    * - desiredLimit (Number): The new wrap limit
+    *
+    * This should generally only be called by the renderer when a resize is detected.
+    **/
     this.adjustWrapLimit = function(desiredLimit) {
         var wrapLimit = this.$constrainWrapLimit(desiredLimit);
         if (wrapLimit != this.$wrapLimit && wrapLimit > 0) {
@@ -1025,7 +1629,7 @@ var EditSession = function(text, mode) {
             this.$modified = true;
             if (this.$useWrapMode) {
                 this.$updateWrapData(0, this.getLength() - 1);
-                this.$resetRowCache(0)
+                this.$resetRowCache(0);
                 this._emit("changeWrapLimit");
             }
             return true;
@@ -1033,6 +1637,11 @@ var EditSession = function(text, mode) {
         return false;
     };
 
+    /** internal, hide
+    * EditSession.$constrainWrapLimit(wrapLimit)
+    *
+    *
+    **/
     this.$constrainWrapLimit = function(wrapLimit) {
         var min = this.$wrapLimitRange.min;
         if (min)
@@ -1046,10 +1655,23 @@ var EditSession = function(text, mode) {
         return Math.max(1, wrapLimit);
     };
 
+    /**
+    * EditSession.getWrapLimit() -> Number
+    *
+    * Returns the value of wrap limit.
+    **/
     this.getWrapLimit = function() {
         return this.$wrapLimit;
     };
 
+    /**
+    * EditSession.getWrapLimitRange() -> Object
+    *
+    * Returns an object that defines the minimum and maximum of the wrap limit; it looks something like this:
+    *
+    *     { min: wrapLimitRange_min, max: wrapLimitRange_max }
+    *
+    **/
     this.getWrapLimitRange = function() {
         // Avoid unexpected mutation by returning a copy
         return {
@@ -1058,6 +1680,11 @@ var EditSession = function(text, mode) {
         };
     };
 
+    /** internal, hide
+    * EditSession.$updateInternalDataOnChange()
+    *
+    *
+    **/
     this.$updateInternalDataOnChange = function(e) {
         var useWrapMode = this.$useWrapMode;
         var len;
@@ -1081,7 +1708,7 @@ var EditSession = function(text, mode) {
 
         if (len != 0) {
             if (action.indexOf("remove") != -1) {
-                useWrapMode && this.$wrapData.splice(firstRow, len);
+                this[useWrapMode ? "$wrapData" : "$rowLengthCache"].splice(firstRow, len);
 
                 var foldLines = this.$foldData;
                 removedFolds = this.getFoldsInRange(e.data.range);
@@ -1115,6 +1742,10 @@ var EditSession = function(text, mode) {
                     args = [firstRow, 0];
                     for (var i = 0; i < len; i++) args.push([]);
                     this.$wrapData.splice.apply(this.$wrapData, args);
+                } else {
+                    args = Array(len);
+                    args.unshift(firstRow, 0);
+                    this.$rowLengthCache.splice.apply(this.$rowLengthCache, args);
                 }
 
                 // If some new line is added inside of a foldLine, then split
@@ -1168,11 +1799,25 @@ var EditSession = function(text, mode) {
             console.error("doc.getLength() and $wrapData.length have to be the same!");
         }
 
-        useWrapMode && this.$updateWrapData(firstRow, lastRow);
+        if (useWrapMode)
+            this.$updateWrapData(firstRow, lastRow);
+        else
+            this.$updateRowLengthCache(firstRow, lastRow);
 
         return removedFolds;
     };
 
+    this.$updateRowLengthCache = function(firstRow, lastRow, b) {
+        //console.log(firstRow, lastRow, b)
+        this.$rowLengthCache[firstRow] = null;
+        this.$rowLengthCache[lastRow] = null;
+        //console.log(this.$rowLengthCache)
+    };
+
+    /** internal, hide
+    * EditSession.$updateWrapData(firstRow, lastRow)
+    *
+    **/
     this.$updateWrapData = function(firstRow, lastRow) {
         var lines = this.doc.getAllLines();
         var tabSize = this.getTabSize();
@@ -1232,6 +1877,11 @@ var EditSession = function(text, mode) {
         TAB = 11,
         TAB_SPACE = 12;
 
+    /** internal, hide
+    * EditSession.$computeWrapSplits(tokens, wrapLimit) -> Array
+    *
+    *
+    **/
     this.$computeWrapSplits = function(tokens, wrapLimit) {
         if (tokens.length == 0) {
             return [];
@@ -1346,13 +1996,15 @@ var EditSession = function(text, mode) {
             addSplit(split);
         }
         return splits;
-    }
+    };
 
-    /**
-     * @param
-     *   offset: The offset in screenColumn at which position str starts.
-     *           Important for calculating the realTabSize.
-     */
+    /** internal, hide
+    * EditSession.$getDisplayTokens(str, offset) -> Array
+    * - str (String): The string to check
+    * - offset (Number): The value to start at
+    *
+    * Given a string, returns an array of the display characters, including tabs and spaces.
+    **/
     this.$getDisplayTokens = function(str, offset) {
         var arr = [];
         var tabSize;
@@ -1382,25 +2034,26 @@ var EditSession = function(text, mode) {
             }
         }
         return arr;
-    }
+    };
 
-    /**
-     * Calculates the width of the a string on the screen while assuming that
-     * the string starts at the first column on the screen.
-     *
-     * @param string str String to calculate the screen width of
-     * @return array
-     *      [0]: number of columns for str on screen.
-     *      [1]: docColumn position that was read until (useful with screenColumn)
-     */
+    /** internal, hide
+    * EditSession.$getStringScreenWidth(str, maxScreenColumn, screenColumn) -> [Number]
+    * - str (String): The string to calculate the screen width of
+    * - maxScreenColumn (Number):
+    * - screenColumn (Number):
+    * + ([Number]): Returns an `int[]` array with two elements:<br/>
+    * The first position indicates the number of columns for `str` on screen.<br/>
+    * The second value contains the position of the document column that this function read until.
+    *
+    * Calculates the width of the string `str` on the screen while assuming that the string starts at the first column on the screen.
+    *
+    *
+    **/
     this.$getStringScreenWidth = function(str, maxScreenColumn, screenColumn) {
-        if (maxScreenColumn == 0) {
+        if (maxScreenColumn == 0)
             return [0, 0];
-        }
-        if (maxScreenColumn == null) {
-            maxScreenColumn = screenColumn +
-                str.length * Math.max(this.getTabSize(), 2);
-        }
+        if (maxScreenColumn == null)
+            maxScreenColumn = Infinity;
         screenColumn = screenColumn || 0;
 
         var c, column;
@@ -1417,46 +2070,63 @@ var EditSession = function(text, mode) {
                 screenColumn += 1;
             }
             if (screenColumn > maxScreenColumn) {
-                break
+                break;
             }
         }
 
         return [screenColumn, column];
-    }
+    };
 
     /**
-     * Returns the number of rows required to render this row on the screen
-     */
+    * EditSession.getRowLength(row) -> Number
+    * - row (Number): The row number to check
+    *
+    *
+    * Returns number of screenrows in a wrapped line.
+    **/
     this.getRowLength = function(row) {
         if (!this.$useWrapMode || !this.$wrapData[row]) {
             return 1;
         } else {
             return this.$wrapData[row].length + 1;
         }
-    }
+    };
 
-    /**
-     * Returns the height in pixels required to render this row on the screen
-     **/
-    this.getRowHeight = function(config, row) {
-        return this.getRowLength(row) * config.lineHeight;
-    }
-
+    /** internal, hide, related to: EditSession.documentToScreenColumn
+    * EditSession.getScreenLastRowColumn(screenRow) -> Number
+    * - screenRow (Number): The screen row to check
+    *
+    * Returns the column position (on screen) for the last character in the provided row.
+    **/
     this.getScreenLastRowColumn = function(screenRow) {
-        var pos = this.screenToDocumentPosition(screenRow, Number.MAX_VALUE)
+        var pos = this.screenToDocumentPosition(screenRow, Number.MAX_VALUE);
         return this.documentToScreenColumn(pos.row, pos.column);
     };
 
+    /** internal, hide
+    * EditSession.getDocumentLastRowColumn(docRow, docColumn) -> Number
+    * - docRow (Number):
+    * - docColumn (Number):
+    *
+    **/
     this.getDocumentLastRowColumn = function(docRow, docColumn) {
         var screenRow = this.documentToScreenRow(docRow, docColumn);
         return this.getScreenLastRowColumn(screenRow);
     };
 
+    /** internal, hide
+    * EditSession.getDocumentLastRowColumnPosition(docRow, docColumn) -> Number
+    *
+    **/
     this.getDocumentLastRowColumnPosition = function(docRow, docColumn) {
         var screenRow = this.documentToScreenRow(docRow, docColumn);
         return this.screenToDocumentPosition(screenRow, Number.MAX_VALUE / 10);
     };
 
+    /** internal, hide
+    * EditSession.getRowSplitData(row) -> undefined | String
+    *
+    **/
     this.getRowSplitData = function(row) {
         if (!this.$useWrapMode) {
             return undefined;
@@ -1466,27 +2136,46 @@ var EditSession = function(text, mode) {
     };
 
     /**
-     * Returns the width of a tab character at screenColumn.
-     */
+    * EditSession.getScreenTabSize(screenColumn) -> Number
+    * - screenColumn (Number): The screen column to check
+    *
+    * The distance to the next tab stop at the specified screen column.
+    **/
     this.getScreenTabSize = function(screenColumn) {
         return this.$tabSize - screenColumn % this.$tabSize;
     };
 
+    /** internal, hide
+    * EditSession.screenToDocumentRow(screenRow, screenColumn) -> Number
+    *
+    *
+    **/
     this.screenToDocumentRow = function(screenRow, screenColumn) {
         return this.screenToDocumentPosition(screenRow, screenColumn).row;
     };
 
+    /** internal, hide
+    * EditSession.screenToDocumentColumn(screenRow, screenColumn) -> Number
+    *
+    *
+    **/
     this.screenToDocumentColumn = function(screenRow, screenColumn) {
         return this.screenToDocumentPosition(screenRow, screenColumn).column;
     };
 
+    /** related to: EditSession.documentToScreenPosition
+    * EditSession.screenToDocumentPosition(screenRow, screenColumn) -> Object
+    * - screenRow (Number): The screen row to check
+    * - screenColumn (Number): The screen column to check
+    * + (Object): The object returned has two properties: `row` and `column`.
+    *
+    * Converts characters coordinates on the screen to characters coordinates within the document. [This takes into account code folding, word wrap, tab size, and any other visual modifications.]{: #conversionConsiderations}
+    *
+    *
+    **/
     this.screenToDocumentPosition = function(screenRow, screenColumn) {
-        if (screenRow < 0) {
-            return {
-                row: 0,
-                column: 0
-            }
-        }
+        if (screenRow < 0)
+            return {row: 0, column: 0};
 
         var line;
         var docRow = 0;
@@ -1495,17 +2184,15 @@ var EditSession = function(text, mode) {
         var row = 0;
         var rowLength = 0;
 
-        var rowCache = this.$rowCache;
-        for (var i = 0; i < rowCache.length; i++) {
-            if (rowCache[i].screenRow < screenRow) {
-                row = rowCache[i].screenRow;
-                docRow = rowCache[i].docRow;
-            }
-            else {
-                break;
-            }
+        var rowCache = this.$screenRowCache;
+        var i = this.$getRowCacheIndex(rowCache, screenRow);
+        if (0 < i && i < rowCache.length) {
+            var row = rowCache[i];
+            var docRow = this.$docRowCache[i];
+            var doCache = screenRow > row || (screenRow == row && i == rowCache.length - 1);
+        } else {
+            var doCache = true;
         }
-        var doCache = !rowCache.length || i == rowCache.length;
 
         var maxRow = this.getLength() - 1;
         var foldLine = this.getNextFoldLine(docRow);
@@ -1525,10 +2212,8 @@ var EditSession = function(text, mode) {
                 }
             }
             if (doCache) {
-                rowCache.push({
-                    docRow: docRow,
-                    screenRow: row
-                });
+                this.$docRowCache.push(docRow);
+                this.$screenRowCache.push(row);
             }
         }
 
@@ -1561,20 +2246,26 @@ var EditSession = function(text, mode) {
 
         // We remove one character at the end so that the docColumn
         // position returned is not associated to the next row on the screen.
-        if (this.$useWrapMode && docColumn >= column) {
+        if (this.$useWrapMode && docColumn >= column)
             docColumn = column - 1;
-        }
 
-        if (foldLine) {
+        if (foldLine)
             return foldLine.idxToPosition(docColumn);
-        }
 
-        return {
-            row: docRow,
-            column: docColumn
-        }
+        return {row: docRow, column: docColumn};
     };
 
+    /** related to: EditSession.screenToDocumentPosition
+    * EditSession.documentToScreenPosition(docRow, docColumn) -> Object
+    * - docRow (Number): The document row to check
+    * - docColumn (Number): The document column to check
+    * + (Object): The object returned by this method has two properties: `row` and `column`.
+    *
+    * Converts document coordinates to screen coordinates. {:conversionConsiderations}
+    *
+    *
+    *
+    **/
     this.documentToScreenPosition = function(docRow, docColumn) {
         // Normalize the passed in arguments.
         if (typeof docColumn === "undefined")
@@ -1584,20 +2275,6 @@ var EditSession = function(text, mode) {
 
         docRow = pos.row;
         docColumn = pos.column;
-
-        var wrapData;
-        // Special case in wrapMode if the doc is at the end of the document.
-        if (this.$useWrapMode) {
-            wrapData = this.$wrapData;
-            if (docRow > wrapData.length - 1) {
-                return {
-                    row: this.getScreenLength(),
-                    column: wrapData.length == 0
-                        ? 0
-                        : (wrapData[wrapData.length - 1].length - 1)
-                };
-            }
-        }
 
         var screenRow = 0;
         var foldStartRow = null;
@@ -1611,17 +2288,17 @@ var EditSession = function(text, mode) {
         }
 
         var rowEnd, row = 0;
-        var rowCache = this.$rowCache;
 
-        for (var i = 0; i < rowCache.length; i++) {
-            if (rowCache[i].docRow < docRow) {
-                screenRow = rowCache[i].screenRow;
-                row = rowCache[i].docRow;
-            } else {
-                break;
-            }
+
+        var rowCache = this.$docRowCache;
+        var i = this.$getRowCacheIndex(rowCache, docRow);
+        if (0 < i && i < rowCache.length) {
+            var row = rowCache[i];
+            var screenRow = this.$screenRowCache[i];
+            var doCache = docRow > row || (docRow == row && i == rowCache.length - 1);
+        } else {
+            var doCache = true;
         }
-        var doCache = !rowCache.length || i == rowCache.length;
 
         var foldLine = this.getNextFoldLine(row);
         var foldStart = foldLine ?foldLine.start.row :Infinity;
@@ -1642,10 +2319,8 @@ var EditSession = function(text, mode) {
             row = rowEnd;
 
             if (doCache) {
-                rowCache.push({
-                    docRow: row,
-                    screenRow: screenRow
-                });
+                this.$docRowCache.push(row);
+                this.$screenRowCache.push(screenRow);
             }
         }
 
@@ -1661,7 +2336,7 @@ var EditSession = function(text, mode) {
         }
         // Clamp textLine if in wrapMode.
         if (this.$useWrapMode) {
-            var wrapRow = wrapData[foldStartRow];
+            var wrapRow = this.$wrapData[foldStartRow];
             var screenRowOffset = 0;
             while (textLine.length >= wrapRow[screenRowOffset]) {
                 screenRow ++;
@@ -1678,14 +2353,29 @@ var EditSession = function(text, mode) {
         };
     };
 
+    /** internal, hide
+    * EditSession.documentToScreenColumn(row, docColumn) -> Number
+    *
+    *
+    **/
     this.documentToScreenColumn = function(row, docColumn) {
         return this.documentToScreenPosition(row, docColumn).column;
     };
 
+    /** internal, hide
+    * EditSession.documentToScreenRow(docRow, docColumn) -> Number
+    *
+    *
+    **/
     this.documentToScreenRow = function(docRow, docColumn) {
         return this.documentToScreenPosition(docRow, docColumn).row;
     };
 
+    /**
+    * EditSession.getScreenLength() -> Number
+    *
+    * Returns the length of the screen.
+    **/
     this.getScreenLength = function() {
         var screenRows = 0;
         var fold = null;

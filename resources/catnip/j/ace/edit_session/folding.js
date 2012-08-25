@@ -45,7 +45,7 @@ var Fold = require("./fold").Fold;
 var TokenIterator = require("../token_iterator").TokenIterator;
 
 function Folding() {
-    /**
+    /*
      * Looks up a fold at a given row/column. Possible values for side:
      *   -1: ignore a fold if fold.start = row/column
      *   +1: ignore a fold if fold.end = row/column
@@ -69,7 +69,7 @@ function Folding() {
         }
     };
 
-    /**
+    /*
      * Returns all folds in the given range. Note, that this will return folds
      *
      */
@@ -115,7 +115,7 @@ function Folding() {
         return foundFolds;
     };
     
-    /**
+    /*
      * Returns all folds in the document
      */
     this.getAllFolds = function() {
@@ -138,7 +138,7 @@ function Folding() {
         return folds;
     };
 
-    /**
+    /*
      * Returns the string between folds at the given position.
      * E.g.
      *  foo<fold>b|ar<fold>wolrd -> "bar"
@@ -257,7 +257,7 @@ function Folding() {
         return foldLine;
     };
 
-    /**
+    /*
      * Adds a new fold.
      *
      * @returns
@@ -340,6 +340,8 @@ function Folding() {
 
         if (this.$useWrapMode)
             this.$updateWrapData(foldLine.start.row, foldLine.start.row);
+        else
+            this.$updateRowLengthCache(foldLine.start.row, foldLine.start.row);
 
         // Notify that fold data has changed.
         this.$modified = true;
@@ -395,9 +397,10 @@ function Folding() {
             newFoldLine.start.column = folds[0].start.column;
         }
 
-        if (this.$useWrapMode) {
+        if (this.$useWrapMode)
             this.$updateWrapData(startRow, endRow);
-        }
+        else
+            this.$updateRowLengthCache(startRow, endRow);
 
         // Notify that fold data has changed.
         this.$modified = true;
@@ -457,7 +460,7 @@ function Folding() {
         }
     };
 
-    /**
+    /*
      * Checks if a given documentRow is folded. This is true if there are some
      * folded parts such that some parts of the line is still visible.
      **/
@@ -467,9 +470,7 @@ function Folding() {
 
     this.getRowFoldEnd = function(docRow, startFoldRow) {
         var foldLine = this.getFoldLine(docRow, startFoldRow);
-        return (foldLine
-            ? foldLine.end.row
-            : docRow);
+        return foldLine ? foldLine.end.row : docRow;
     };
 
     this.getFoldDisplayLine = function(foldLine, endRow, endColumn, startRow, startColumn) {
@@ -728,7 +729,7 @@ function Folding() {
         } else {
             if (addSubfolds)
                 this.foldAll(row + 1, this.getLength());
-            e.target.className += " invalid"
+            (e.target || e.srcElement).className += " invalid"
         }
     };
     
