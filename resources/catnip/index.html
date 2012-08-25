@@ -31,20 +31,21 @@
     </script>
     <script type="text/javascript" src="/j/require.js"></script>
   </head>
-  <body>
+  <body class="loading">
     <div class="frame">
-      <div class="navbar">
+      <div class="navbar navbar-inverse">
         <div class="navbar-inner">
           <div class="container">
             <a class="brand">Catnip</a>
             <ul class="nav">
               <li class="divider-vertical"></li>
               <li class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown">Buffers
-                  <b class="caret"></b>
-                </a>
-                <ul class="dropdown-menu" id="buffer-menu">
-                </ul>
+                <a tabindex="-1" class="dropdown-toggle" data-toggle="dropdown">Buffers</a>
+                <ul class="dropdown-menu" id="buffer-menu"></ul>
+              </li>
+              <li class="dropdown">
+                <a tabindex="-1" class="dropdown-toggle" data-toggle="dropdown">Options</a>
+                <ul class="dropdown-menu" id="options-menu"></ul>
               </li>
             </ul>
             <form class="navbar-form pull-right location-bar">

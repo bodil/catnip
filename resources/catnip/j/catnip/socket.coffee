@@ -80,6 +80,6 @@ define ["jquery", "ace/lib/event_emitter"
         ns: namespace
         doc: word
 
-    profile: (tag) =>
+    saveProfile: (tag) =>
       @send tag,
-        profile: "read"
+        profile: window.CatnipProfile

@@ -224,7 +224,15 @@ define ["jquery", "cs!./keybindings", "./caret"
             if type
               @replPrint(type, "#{msg.ns}: #{result.pass} passed, #{result.fail} failed, #{result.error} errors.")
               @display.addClass(type)
-              window.setTimeout (=> @display.removeClass(type)), 10
+              timer = =>
+                @display.addClass("test-clear")
+                timer2 = =>
+                  @display.removeClass(type)
+                  timer3 = =>
+                    @display.removeClass("test-clear")
+                  window.setTimeout timer3, 1000
+                window.setTimeout timer2, 10
+              window.setTimeout(timer, 10)
             else
               @replPrint("test-error", "No tests in #{msg.ns}.")
               @browser.reload()

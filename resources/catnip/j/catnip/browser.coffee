@@ -10,18 +10,13 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     constructor: (@frame, @locationBar, @refreshButton, @socket) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
-      @socket.on "message", @onSocketMessage
-      @socket.profile()
       @frame.on "load", (e) => @syncLocationBar()
       @locationBar.parent().parent().on "submit", (e) =>
         e.preventDefault()
         @load(@locationBar.val())
       @refreshButton.on "click", (e) => @reload()
 
-    onSocketMessage: (e) =>
-      msg = e.message
-      if msg.profile?
-        @frame[0].src = msg.profile["default-browser-url"]
+      @frame[0].src = window.CatnipProfile["default-browser-url"]
 
     syncLocationBar: =>
       @locationBar.val(@frame[0].src)

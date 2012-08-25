@@ -2,44 +2,32 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["jquery", "ace/lib/event_emitter"
-], ($, event_emitter) ->
+define ["jquery", "ace/lib/event_emitter", "cs!./dropdown"
+], ($, event_emitter, DropdownMenu) ->
 
   EventEmitter = event_emitter.EventEmitter
 
-  class BufferMenu
-    constructor: (@list, @editor) ->
-      this[key] = EventEmitter[key] for own key of EventEmitter
+  class BufferMenu extends DropdownMenu
+    constructor: (list, @editor) ->
       @attachToEditor(@editor) if @editor?
-      @list.on("click", "li.item", @onClick)
-      @updateList()
+      super(list)
 
     attachToEditor: =>
       @editor.on("openBuffer", @updateList)
 
     updateList: =>
-      @list.html("")
-      @buffers = @editor.getBufferHistory()[...12]
-      @nodes = @buffers.map (buffer) =>
-        node = $("<li></li>").addClass("item").html('<i class="icon-empty"></i> ' + buffer)
-        @list.append(node)
-        node[0]
-      @list.append($("<li></li>").addClass("divider")) if @buffers.length
-      @newItem = $("<li></li>").addClass("item").html('<i class="icon-file"></i> New...')
-        .append($("<span></span>").addClass("shortcut").text("Ctrl-Shift-F"))
-      @nodes.push(@newItem)
-      @list.append(@newItem)
-      @openItem = $("<li></li>").addClass("item").html('<i class="icon-folder-open"></i> Open...')
-        .append($("<span></span>").addClass("shortcut").text("Ctrl-F"))
-      @nodes.push(@openItem)
-      @list.append(@openItem)
+      super
+      for buffer in @editor.getBufferHistory()[...12]
+        @item(buffer, buffer)
+      @divider()
+      @item("-menu-new", "New...", "file", "Ctrl-Shift-F")
+      @item("-menu-open", "Open...", "folder-open", "Ctrl-F")
 
-    onClick: (e) =>
-      index = @nodes.indexOf(e.target)
-      if index < 0
-        if (e.target == @openItem[0])
-          @editor.selectFile()
-        else if (e.target == @newItem[0])
+    onSelected: (id) =>
+      switch id
+        when "-menu-new"
           @editor.createFile()
-      else
-        @editor.openBuffer(@buffers[index])
+        when "-menu-open"
+          @editor.selectFile()
+        else
+          @editor.openBuffer(id)

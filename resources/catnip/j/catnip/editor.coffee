@@ -3,10 +3,10 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
-        "ace/undomanager", "ace/theme/chrome", "ace/multi_select"
+        "ace/undomanager", "ace/multi_select"
         "cs!./keybindings", "cs!./suggestbox", "cs!./modemap"
         "cs!./fileselector", "cs!./filecreator", "cs!./doctip"
-], ($, ace_editor, virtual_renderer, edit_session, undomanager, theme_chrome, multi_select, keybindings, SuggestBox, modemap, FileSelector, FileCreator, Doctip) ->
+], ($, ace_editor, virtual_renderer, edit_session, undomanager, multi_select, keybindings, SuggestBox, modemap, FileSelector, FileCreator, Doctip) ->
 
   AceEditor = ace_editor.Editor
   Renderer = virtual_renderer.VirtualRenderer
@@ -16,9 +16,10 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
   class Editor extends AceEditor
     constructor: (element, @socket) ->
-      super(new Renderer(element, theme_chrome))
+      super(new Renderer(element))
       new MultiSelect(this)
       @setDisplayIndentGuides(false)
+      @updateTheme()
 
       @buffers = {}
       @bufferHistory = []
@@ -32,7 +33,6 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       $(window).on "beforeunload", @onWindowBeforeUnload
 
       @socket.on "message", @onSocketMessage
-      @socket.profile()
 
       @keyBinding.addKeyboardHandler
         handleKeyboard: @keyboardDelegate
@@ -92,6 +92,12 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Ctrl-I"
         exec: => @expandSnippet()
 
+    updateTheme: =>
+      if $("body").hasClass("theme-light")
+        @setTheme("ace/theme/chrome")
+      else if $("body").hasClass("theme-dark")
+        @setTheme("ace/theme/tomorrow_night_eighties")
+
     keyboardDelegate: (data, hashId, keystring, keyCode, e) =>
       if @doctip
         @doctip.close()
@@ -144,8 +150,6 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       else if msg.doc? and msg.tag == "editor"
         e.stopPropagation()
         @onDocumentSymbol(msg)
-      else if msg.profile?
-        @onNewProfile(msg.profile)
 
     getCursorAnchor: =>
       cursor = @getCursorPosition()
@@ -289,14 +293,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       if msg.doc
         @doctip = new Doctip(msg.doc, $("#view"))
 
-    onNewProfile: (profile) =>
-      @snippets = profile.snippets
-
-    snippets:
-      "Snippets not yet loaded, try again later": ""
-
-    snippetKeys: => k for own k of @snippets
-    snippet: (s) => @snippets[s]
+    snippetKeys: => k for own k of window.CatnipProfile.snippets
+    snippet: (s) => window.CatnipProfile.snippets[s]
 
     expandSnippet: =>
       pos = @getCursorPosition()

@@ -35,6 +35,17 @@ body {
     background: url("/m/black_paper.png");
     height: 100%;
     visibility: visible;
+    opacity: 1;
+    .transition(opacity 0.5s ease);
+}
+
+body.loading {
+    opacity: 0;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
 }
 
 div.frame {
@@ -49,6 +60,10 @@ div.frame {
 
 div.navbar {
     margin: 6pt 12pt;
+
+    ul.nav {
+        font-size: 12pt;
+    }
 
     a.dropdown-toggle {
         cursor: pointer;
@@ -158,8 +173,6 @@ div.repl {
     background-repeat: no-repeat;
     background-position: 50% 50%;
 
-    .transition(background-color 2s ease);
-
     p {
         line-height: 24px;
         margin: 0 6pt;
@@ -227,6 +240,10 @@ div.repl {
     background-color: @orange;
 }
 
+#repl-display.test-clear {
+    .transition(background-color 1s ease);
+}
+
 div.repl-holder {
     position: absolute;
     height: 30px;
@@ -251,6 +268,7 @@ div.repl-holder {
     width: 1;
     color: @purple;
     padding-left: 6pt;
+    padding-top: 1px;
 }
 
 #repl-prompt:after {
@@ -260,7 +278,7 @@ div.repl-holder {
 
 #repl-input {
     border: none;
-    margin: -4px 0 0 0;
+    margin: 0;
     padding: 0;
     border-radius: 0;
     box-shadow: none;
@@ -362,7 +380,7 @@ div.filename-entry, div.file-selector {
 
 div.filename-entry {
     text-align: center;
-    
+
     div.entry {
         display: inline-block;
         vertical-align: middle;
@@ -429,21 +447,136 @@ div.fade-in {
     .transition(opacity 0.2s ease);
 }
 
-#buffer-menu {
-    li.item {
-        padding: 0.1em 1em;
-        cursor: pointer;
-        color: black;
-        min-width: 10em;
-        white-space: nowrap;
+ul.dropdown-menu li {
+    cursor: pointer;
+    min-width: 10em;
+    white-space: nowrap;
 
-        span.shortcut {
-            float: right;
+    span.shortcut {
+        float: right;
+    }
+}
+
+
+
+::-webkit-scrollbar {
+    background: #f8f8f8;
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f8f8f8;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #aaa;
+    border-radius: 3px;
+
+    &:hover {
+        background: #888;
+    }
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+
+
+body.theme-dark {
+    div.frame {
+        background: #222;
+    }
+
+    #editor, div.repl, #view {
+        border-top: 1px solid #111;
+        border-left: 1px solid #111;
+        border-bottom: 1px solid #333;
+        border-right: 1px solid #333;
+    }
+
+    #editor, #repl-display, div.repl-holder, #repl-input {
+        background: #2d2d2d;
+        color: #ccc;
+    }
+
+    div.repl-holder {
+        border-top: 2px groove #444;
+    }
+
+    #repl-display {
+        &.test-pass {
+            background-color: @green;
+        }
+
+        &.test-fail {
+            background-color: @red;
+        }
+
+        &.test-error {
+            background-color: @orange;
+        }
+
+        p.out {
+            color: #ccc;
+        }
+
+        p.code {
+            color: #c9c;
+
+            span.clojure {
+                color: #ccc;
+            }
+        }
+
+        p.result, p.test-pass {
+            color: #9c9;
+        }
+
+        p.error, p.test-fail {
+            color: #f98;
+        }
+
+        p.test-error {
+            color: #f99157;
         }
     }
 
-    li.item:hover {
-        color: white;
-        background: #abf;
+    #repl-prompt {
+        color: #c9c;
+    }
+
+    #location-bar {
+        background: #aaa;
+        border: 1px solid #888;
+        color: black;
+    }
+
+    ::-webkit-scrollbar {
+        background: #2d2d2d;
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #2d2d2d;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #666;
+        border-radius: 3px;
+
+        &:hover {
+            background: #999;
+        }
+    }
+
+    ::-webkit-scrollbar-button {
+        display: none;
     }
 }

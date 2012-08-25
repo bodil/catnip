@@ -3,14 +3,25 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 define ["jquery", "cs!./socket", "cs!./editor"
-        "cs!./repl", "cs!./buffermenu", "cs!./browser", "cs!./keybindings"
-], ($, Socket, Editor, REPL, BufferMenu, Browser, keybindings) ->
+        "cs!./repl", "cs!./buffermenu", "cs!./optionsmenu",
+        "cs!./browser", "cs!./keybindings"
+], ($, Socket, Editor, REPL, BufferMenu, OptionsMenu, Browser, keybindings) ->
+
   $(document).ready ->
+    theme = window.CatnipProfile.theme or "light"
+    $("body").addClass("theme-#{theme}")
+
     socket = new Socket()
+    loadingComplete = ->
+      setTimeout (-> $("body").removeClass("loading")), 1000
+      socket.removeListener "message", loadingComplete
+    socket.on "message", loadingComplete
+
     editor = new Editor(document.getElementById("editor"), socket)
     window.browser = browser = new Browser $("#view"), $("#location-bar"), $("#location-refresh"), socket
     window.repl = repl = new REPL $("#repl-input"), $("#repl-display"), $("#repl-prompt"), editor, browser, socket
     new BufferMenu($("#buffer-menu"), editor)
+    new OptionsMenu($("#options-menu"), editor)
 
     editor.loadBuffer(editor.getBufferAccordingToURL())
 
