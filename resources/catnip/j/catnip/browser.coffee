@@ -10,7 +10,11 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     constructor: (@frame, @locationBar, @refreshButton, @socket) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
-      @frame.on "load", (e) => @syncLocationBar()
+      window.addEventListener("message", @onWindowMessage, false)
+
+      @frame.on "load", (e) =>
+        @syncLocationBar()
+        @frame[0].contentWindow.postMessage("hello", "*")
       @locationBar.parent().parent().on "submit", (e) =>
         e.preventDefault()
         @load(@locationBar.val())
@@ -29,6 +33,14 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     reload: =>
       @frame[0].src = @frame[0].src if @frame[0].src
 
+    onWindowMessage: (e) ->
+      m = e.data.match(/^client-frame:(.*)/)
+      if m
+        args = JSON.parse(m[1])
+        if args.console?
+          msg = args.console.arguments.join(" ")
+          window.repl.replPrint("out", msg)
+
     nextSlide: (e) =>
       e?.preventDefault()
       @frame[0].contentWindow.postMessage("nextSlide", "*")
@@ -36,3 +48,23 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     previousSlide: (e) =>
       e?.preventDefault()
       @frame[0].contentWindow.postMessage("previousSlide", "*")
+
+    slideLeft: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("slideLeft", "*")
+
+    slideRight: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("slideRight", "*")
+
+    slideUp: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("slideUp", "*")
+
+    slideDown: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("slideDown", "*")
+
+    escape: (e) =>
+      e?.preventDefault()
+      @frame[0].contentWindow.postMessage("escape", "*")

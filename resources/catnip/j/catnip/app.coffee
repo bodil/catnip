@@ -25,8 +25,25 @@ define ["jquery", "cs!./socket", "cs!./editor"
 
     editor.loadBuffer(editor.getBufferAccordingToURL())
 
+    togglePresentationMode = (e) ->
+      e?.preventDefault()
+      if $(window.document.body).hasClass("presentation-mode")
+        $(window.document.body).removeClass("presentation-mode")
+        editor.focus()
+      else
+        $(window.document.body).removeClass("hide-browser")
+        $(window.document.body).addClass("presentation-mode")
+        editor.blur()
+        repl.input.blur()
+
+    editor.commands.addCommand
+      name: "presentationMode"
+      bindKey: "Ctrl-P"
+      exec: -> togglePresentationMode()
+
     $(window).on "keydown", (e) ->
       if keybindings.matchBinding e, "C-r"
+        $(window.document.body).removeClass("presentation-mode")
         repl.focusEditor(e)
       else if keybindings.matchBinding e, "C-s"
         editor.saveBuffer(e)
@@ -35,24 +52,16 @@ define ["jquery", "cs!./socket", "cs!./editor"
         $(window.document.body).removeClass("presentation-mode")
         $(window.document.body).toggleClass("hide-browser")
         editor.resize()
-      else if not $(window.document.body).hasClass("presentation-mode")
-          if keybindings.matchBinding e, "C-p"
-            e.preventDefault()
-            $(window.document.body).removeClass("hide-browser")
-            $(window.document.body).addClass("presentation-mode")
-            editor.blur()
-            repl.input.blur()
-      else
+      else if keybindings.matchBinding e, "C-p"
+        togglePresentationMode(e)
+      else if $(window.document.body).hasClass("presentation-mode")
         keybindings.delegate e,
           "pagedown": browser.nextSlide
-          "down": browser.nextSlide
-          "right": browser.nextSlide
           "space": browser.nextSlide
           "pageup": browser.previousSlide
-          "up": browser.previousSlide
-          "left": browser.previousSlide
           "backspace": browser.previousSlide
-          "C-p": (e) ->
-            e.preventDefault()
-            $(window.document.body).removeClass("presentation-mode")
-            editor.focus()
+          "left": browser.slideLeft
+          "right": browser.slideRight
+          "up": browser.slideUp
+          "down": browser.slideDown
+          "esc": browser.escape

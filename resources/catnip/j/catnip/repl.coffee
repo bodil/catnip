@@ -144,6 +144,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         node.text("#{ns}» ").append($('<span class="clojure"></span>').text(msg))
       else
         node.text(msg)
+      node.html(node.html().replace(/https?:\/\/\S*/, (i) -> "<a href=\"#{i}\" target=\"_blank\">#{i}</a>"))
+
       @display.append(node)
       @lastOutputNode = node
       if !@replFlushTimeout?
