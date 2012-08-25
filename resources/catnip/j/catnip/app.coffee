@@ -49,7 +49,9 @@ define ["jquery", "cs!./socket", "cs!./editor"
         editor.saveBuffer(e)
       else if keybindings.matchBinding e, "C-1"
         e.preventDefault()
-        $(window.document.body).removeClass("presentation-mode")
+        if $(window.document.body).hasClass("presentation-mode")
+          $(window.document.body).removeClass("presentation-mode")
+          repl.focusEditor()
         $(window.document.body).toggleClass("hide-browser")
         editor.resize()
       else if keybindings.matchBinding e, "C-p"
