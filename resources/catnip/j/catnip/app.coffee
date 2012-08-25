@@ -19,9 +19,15 @@ define ["jquery", "cs!./socket", "cs!./editor"
         repl.focusEditor(e)
       else if keybindings.matchBinding e, "C-s"
         editor.saveBuffer(e)
+      else if keybindings.matchBinding e, "C-1"
+        e.preventDefault()
+        $(window.document.body).removeClass("presentation-mode")
+        $(window.document.body).toggleClass("hide-browser")
+        editor.resize()
       else if not $(window.document.body).hasClass("presentation-mode")
           if keybindings.matchBinding e, "C-p"
             e.preventDefault()
+            $(window.document.body).removeClass("hide-browser")
             $(window.document.body).addClass("presentation-mode")
             editor.blur()
             repl.input.blur()

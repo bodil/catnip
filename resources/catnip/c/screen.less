@@ -91,6 +91,21 @@ div.right-pane {
     .transition(margin 1s ease);
 }
 
+body.hide-browser {
+    div.left-pane {
+        right: 0;
+    }
+
+    div.right-pane {
+        opacity: 0;
+        z-index: -1;
+    }
+
+    form.location-bar {
+        display: none;
+    }
+}
+
 div.navbar, div.left-pane, .ace_cursor {
     opacity: 1;
     .transition(opacity 1s ease);
