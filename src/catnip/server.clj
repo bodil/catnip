@@ -7,13 +7,16 @@
             [clojure.repl :as repl]
             [clojure.pprint :as pprint]
             [clojure.string :as string]
+            [clojure.java.io :as io]
+            [net.cgrand.enlive-html :as html]
             [catnip.filesystem :as fs]
             [catnip.complete :as complete]
             [catnip.profile :as profile])
   (:use [clojure.test]
         [clj-info.doc2map :only [get-docs-map]])
-  (:import [org.webbitserver WebServer WebServers WebSocketHandler]
-           [org.webbitserver.handler EmbeddedResourceHandler AliasHandler]
+  (:import [org.webbitserver WebServer WebServers WebSocketHandler
+            HttpHandler]
+           [org.webbitserver.handler EmbeddedResourceHandler]
            [java.net InetSocketAddress URI]
            [java.util.concurrent Executors]))
 
@@ -117,6 +120,16 @@
                   :tag str
                   :test str))))
 
+(defn send-index [r]
+  (let [nodes (html/html-resource "catnip/index.html")
+        transformed
+        (html/transform nodes [:#session-profile]
+                        (html/content (profile/wrap-profile)))]
+    (-> r
+        (.header "Content-Type" "text/html")
+        (.content (apply str (html/emit* transformed)))
+        (.end))))
+
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))
 
@@ -144,7 +157,7 @@
             {:fs (fs/fs-command (:fs msg))}
 
             (:profile msg)
-            {:profile (profile/read-profile)}
+            {:profile (profile/save-profile (:profile msg))}
 
             :else {:error "Bad message" :msg json})
           (catch Exception e
@@ -173,7 +186,10 @@
               (onOpen [c] (on-connect c))
               (onClose [c] (on-disconnect c))
               (onMessage [c j] (on-message c j))))
-      (.add "/(buffers/.*|$)" (AliasHandler. "/index.html"))
+      (.add "/(buffers/.*|$)"
+            (proxy [HttpHandler] []
+              (handleHttpRequest [req res ctl]
+                (send-index res))))
       (.add (EmbeddedResourceHandler. "catnip"))
       (.start))
     (def ^:dynamic *server* server)

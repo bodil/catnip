@@ -9,7 +9,8 @@
                  [org.clojure/data.json "0.1.3"]
                  [org.webbitserver/webbit "0.4.6"]
                  [org.clojure/clojurescript "0.0-1450"]
-                 [clj-info "0.2.3"]]
+                 [clj-info "0.2.3"]
+                 [enlive "1.0.1"]]
   :cljsbuild {:builds
               [{:source-path "src"
                 :compiler

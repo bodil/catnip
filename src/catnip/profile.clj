@@ -4,7 +4,8 @@
 
 (ns catnip.profile
   (:require [clojure.java.io :as io]
-            [clojure.pprint :as pprint]))
+            [clojure.pprint :as pprint]
+            [clojure.data.json :as json]))
 
 (def default-profile
   {:snippets
@@ -25,3 +26,9 @@
     (if (.exists path)
       (merge default-profile (read-string (slurp (profile-path))))
       (save-profile default-profile))))
+
+(defn wrap-profile []
+  (let [profile (read-profile)]
+    (str "window.CatnipProfile = "
+         (json/json-str profile)
+         ";\n")))
