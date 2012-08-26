@@ -13,7 +13,7 @@ To install using Leiningen, simply add the plugin to your
 
 ```clojure
     {:user {:plugins [...
-                      [lein-catnip "0.2.1"]]}}
+                      [lein-catnip "0.3.0"]]}}
 ```
 
 You can now launch it from within your own Leiningen projects like
