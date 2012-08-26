@@ -5,7 +5,7 @@
            [java.net ServerSocket]))
 
 (defn- with-catnip-dep [project]
-  (deps/add-if-missing project '[catnip "0.3.0"]))
+  (deps/add-if-missing project '[catnip "0.4.0-SNAPSHOT"]))
 
 (defn- start-server-form [port]
   `(let [url# (str (catnip.server/start ~port))]
