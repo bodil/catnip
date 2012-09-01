@@ -34,7 +34,6 @@ define ["jquery", "cs!./keybindings", "./caret"
         "down": @onHistoryForward
         "C-r": @focusEditor
         "tab": @complete
-        "C-s": @editor.saveBuffer
         "C-,": @editor.saveAndTest
         "C-f": @editor.selectFile
         "C-b": @editor.selectBuffer
