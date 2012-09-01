@@ -19,6 +19,7 @@ define ["jquery", "cs!./keybindings", "./caret"
 
       @input.on "keydown", @onKeyDown
       @display.on "click", "div.exception a", @onExceptionClick
+      @editor.on "sexp-to-repl", @onSexpToRepl
 
       @history = []
       @historyPos = 0
@@ -322,3 +323,6 @@ define ["jquery", "cs!./keybindings", "./caret"
       e.preventDefault()
       a = $(e.currentTarget)
       @editor.loadBuffer(a.attr("href"), a.attr("data-line"))
+
+    onSexpToRepl: (e) =>
+      @input.val(e.sexp).focus()

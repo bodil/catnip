@@ -97,6 +97,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Ctrl-E"
         exec: => @evaluateSexp()
 
+      @commands.addCommand
+        name: "sexpToRepl"
+        bindKey: "Alt-E"
+        exec: => @sexpToRepl()
+
     updateTheme: =>
       if $("body").hasClass("theme-light")
         @setTheme("ace/theme/chrome")
@@ -330,7 +335,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         if session.dirty
           return e.returnValue = "Buffer \"#{path}\" has been modified."
 
-    evaluateSexp: =>
+    sexpAtPoint: =>
       if @getCharBeforePoint() in ")}]\""
         pos = @getCursorPosition()
         @jumpToMatching(true)
@@ -338,6 +343,12 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         @moveCursorToPosition(pos)
       else
         sel = @getSymbolAtPoint()
-      sel = sel.trim()
-      if sel
+      sel.trim()
+
+    evaluateSexp: =>
+      if sel = @sexpAtPoint()
         @socket.eval(sel, "repl")
+
+    sexpToRepl: =>
+      if sel = @sexpAtPoint()
+        @_emit "sexp-to-repl", sexp: sel
