@@ -8,3 +8,5 @@ pom.xml
 *.class
 /.lein-cljsbuild*
 /resources/catnip/cljs
+/plugin/pom.xml.asc
+/pom.xml.asc
