@@ -29,14 +29,15 @@
   (let [e (if (:cause e)
             (assoc e :cause (annotate-local (:cause e)))
             e)
-        localise (fn [el]
-                   (if-let [path (fs/ns-as-local-file (:ns el))]
-                     (assoc el :local path)
-                     el))]
+        localise
+        (fn [el]
+          (if (= (:file el) "NO_SOURCE_FILE") el
+              (if-let [path (fs/ns-as-local-file (:ns el))]
+                (assoc el :local path)
+                el)))]
     (if (:trace-elems e)
       (assoc e :trace-elems
-             (map localise (:trace-elems e)))
-      e)))
+             (map localise (:trace-elems e))) e)))
 
 (defn pprint-exception [e]
   (annotate-local (stacktrace/parse-exception e)))
