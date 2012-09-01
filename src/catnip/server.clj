@@ -58,9 +58,7 @@
 
             :else {:error "Bad message" :msg json})
           (catch Exception e
-            {:error (repl/with-err-str
-                      (clojure.repl/pst
-                       (clojure.repl/root-cause e)))}))]
+            {:error (repl/pprint-exception e)}))]
     (try
       (.send socket
              (json/json-str
@@ -68,9 +66,7 @@
                 :ns (str (.data socket "ns"))
                 :tag (:tag msg))))
       (catch Exception e
-        (let [message (repl/with-err-str
-                        (clojure.repl/pst
-                         (clojure.repl/root-cause e)))]
+        (let [message (repl/pprint-exception e)]
           (.send socket (json/json-str
                         {:error "Failed to serialise response."
                          :exception message})))))))

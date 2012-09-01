@@ -10,7 +10,8 @@
                  [org.webbitserver/webbit "0.4.6"]
                  [org.clojure/clojurescript "0.0-1450"]
                  [clj-info "0.2.3"]
-                 [enlive "1.0.1"]]
+                 [enlive "1.0.1"]
+                 [clj-stacktrace "0.2.4"]]
   :cljsbuild {:builds
               [{:source-path "src"
                 :compiler

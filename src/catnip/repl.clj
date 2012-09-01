@@ -2,6 +2,7 @@
   (:require [clojure.pprint :as pprint]
             [clojure.string :as string]
             [catnip.complete :as complete]
+            [clj-stacktrace.repl :as st]
             [clojure.repl :as repl])
   (:use [clojure.test]
         [clj-info.doc2map :only [get-docs-map]]))
@@ -26,11 +27,10 @@
          (.data socket "ns" *ns*)
          result))))
 
-(defmacro with-err-str [& forms]
-  `(let [err# (java.io.StringWriter.)]
-     (with-bindings {#'*err* err#}
-       ~@forms)
-     (str err#)))
+(defn pprint-exception [e]
+  (let [out (java.io.StringWriter.)]
+    (st/pst-on out false e)
+    (str out)))
 
 (defn eval-sexp [socket sexp]
   (let [out (java.io.StringWriter.)
@@ -47,7 +47,7 @@
               errline-re #":(\d+)\)$"]
           {:code {:ns code-ns :text (ppr sexp)}
            :out (str out)
-           :error (with-err-str (repl/pst e))
+           :error (pprint-exception e)
            :annotation
            (or (if-let [m (re-find chop-exc-re msg)] (second m)) msg)
            :errline
@@ -70,7 +70,7 @@
       {:eval (eval-stream socket s)}
       (catch Exception e
         (let [e (repl/root-cause e)]
-          {:error (with-err-str (repl/pst e))
+          {:error (pprint-exception e)
            :annotation (.getMessage e)
            :line (.getLineNumber s)})))))
 
