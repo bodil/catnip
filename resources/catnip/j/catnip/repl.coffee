@@ -207,6 +207,7 @@ define ["jquery", "cs!./keybindings", "./caret"
     onErrorMessage: (msg) =>
       @replPrint("error",
         if msg.line? then "Line #{msg.line}: #{msg.error}" else msg.error)
+      @replPrintException(msg.exception)
       if msg.line? and msg.annotation?
         @editor.getSession().setAnnotations([
           row: msg.line - 1
