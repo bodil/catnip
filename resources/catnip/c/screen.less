@@ -211,6 +211,45 @@ div.repl {
     p.test-error {
         color: @orange;
     }
+
+    div.exception {
+        margin: 0;
+        padding: 0;
+
+        a {
+            color: inherit;
+            text-decoration: underline;
+
+            &:hover {
+                background: rgba(255,255,255,0.6);
+            }
+        }
+
+        p {
+            color: @red;
+            white-space: normal;
+            margin: 0;
+            padding: 0;
+            margin-left: 2em;
+            text-indent: -2em;
+
+            span.message {
+                color: black;
+            }
+
+            span.source {
+                color: @orange;
+            }
+
+            span.method {
+                color: @purple;
+            }
+
+            &.trace-elem {
+                white-space: pre-wrap;
+            }
+        }
+    }
 }
 
 #repl-display.test-pass {
@@ -269,6 +308,7 @@ div.repl-holder {
     color: @purple;
     padding-left: 6pt;
     padding-top: 1px;
+    white-space: nowrap;
 }
 
 #repl-prompt:after {
@@ -542,6 +582,32 @@ body.theme-dark {
 
         p.test-error {
             color: #f99157;
+        }
+
+        div.exception {
+            a {
+                text-decoration: none;
+                background: #434343;
+                &:hover {
+                    background: #545454;
+                }
+            }
+
+            p {
+                color: #f98;
+
+                span.message {
+                    color: #ccc;
+                }
+
+                span.source {
+                    color: #b58900;
+                }
+
+                span.method {
+                    color: #6c71c4;
+                }
+            }
         }
     }
 

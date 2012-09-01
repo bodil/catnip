@@ -66,6 +66,21 @@
     (catch Throwable e
       {:path path :success false :error (.getMessage e)})))
 
+(defn- append-clj-prefix [file]
+  (let [parent (.getParentFile file)
+        base (.getName file)]
+    (io/file parent (str base ".clj"))))
+
+(defn ns-as-local-file [ns]
+  (if ns
+    (let [ns-path (clojure.string/split ns #"\.")
+        ns-file (join-paths project-path "src" ns-path)
+        file (append-clj-prefix ns-file)]
+    (if (.isFile file)
+      (relative-to project-path file)
+      nil))
+    nil))
+
 (defn fs-command [msg]
   (let [result (case (:command msg)
                  "files"

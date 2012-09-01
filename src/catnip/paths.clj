@@ -90,3 +90,16 @@
   (is ((glob-matcher "/foo*") (io/file "/foo/bar")))
   (is ((glob-matcher "/foo") (io/file "/foo/bar")))
   (is (not ((glob-matcher "/foo") (io/file "/bar/foo")))))
+
+(with-test
+  (defn join-paths [& paths]
+    (loop [file nil paths (flatten paths)]
+      (if (not (seq paths))
+        file
+        (if file
+          (recur (io/file file (first paths)) (rest paths))
+          (recur (io/file (first paths)) (rest paths))))))
+  (is (= (io/file "foo/bar/gazonk")
+         (join-paths "foo" "bar" "gazonk")))
+  (is (= (io/file "foo/bar/gazonk")
+         (join-paths "foo" ["bar" ["gazonk"]]))))

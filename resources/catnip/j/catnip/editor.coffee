@@ -210,8 +210,8 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       e?.preventDefault()
       @socket.dirs()
 
-    loadBuffer: (buffer) =>
-      @socket.readFile(buffer)
+    loadBuffer: (buffer, line) =>
+      @socket.readFile(buffer, if line then {line: line} else null)
 
     onFileSelected: (e) =>
       if not e.cancelled
@@ -269,7 +269,10 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         @buffers[path] = session = @createSession(path, content)
       @setSession(session)
       @pushBufferHistory(path, tag == "window-history")
-      if session._storedCursorPos?
+      if tag?.line
+        @navigateTo(tag.line - 1, 0)
+        @centerSelection()
+      else if session._storedCursorPos?
         @navigateTo(session._storedCursorPos.row, session._storedCursorPos.column)
       @focus()
       @_emit "openBuffer"

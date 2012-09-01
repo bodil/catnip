@@ -10,11 +10,15 @@ define ["jquery", "cs!./keybindings", "./caret"
 
   fileExtension = (path) -> path.split(".").pop()
 
+  breakable = (t) ->
+    t.replace /([.$/-])/g, (c) -> "\u200B#{c}"
+
   class REPL
     constructor: (@input, @display, @prompt, @editor, @browser, @socket) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       @input.on "keydown", @onKeyDown
+      @display.on "click", "div.exception a", @onExceptionClick
 
       @history = []
       @historyPos = 0
@@ -138,6 +142,12 @@ define ["jquery", "cs!./keybindings", "./caret"
       @input.caret(beforeCaret.length)
       @suggestBox = null
 
+    printNode: (node) =>
+      @display.append(node)
+      @lastOutputNode = node
+      if !@replFlushTimeout?
+        @replFlushTimeout = window.setTimeout(@onReplFlushTimeout, 50)
+
     replPrint: (type, msg, ns) =>
       node = $("<p></p>").addClass(type)
       if type == "code" and ns
@@ -145,11 +155,49 @@ define ["jquery", "cs!./keybindings", "./caret"
       else
         node.text(msg)
       node.html(node.html().replace(/https?:\/\/\S*/, (i) -> "<a href=\"#{i}\" target=\"_blank\">#{i}</a>"))
+      @printNode(node)
 
-      @display.append(node)
-      @lastOutputNode = node
-      if !@replFlushTimeout?
-        @replFlushTimeout = window.setTimeout(@onReplFlushTimeout, 50)
+    exceptionNode: (e) =>
+      if e.cause and e.class.match(/.*clojure\.lang\.Compiler\$CompilerException.*/)
+        return @exceptionNode(e.cause)
+
+      elemLength = (el) ->
+        if el.file and el.line
+          "#{el.file}:#{el.line}".length
+        else
+          "(Unknown Source)".length
+      traceWidth = Math.max.apply(this, (elemLength(el) for el in e["trace-elems"]))
+      traceElem = (el) ->
+        sourcePad = traceWidth - elemLength(el)
+        spaces = new Array(sourcePad + 1).join(" ")
+        source = if el.file and el.line
+          """<span class="source">#{el.file}:#{el.line}</span>"""
+        else
+          """<span class="source">(Unknown Source)</span>"""
+        method = if el.java
+          """<span class="method">#{breakable(el.class+"."+el.method)}</span>"""
+        else
+          fn = el.fn + if el["anon-fn"] then " [fn]" else ""
+          """<span class="method">#{breakable(el.ns+"/"+fn)}</span>"""
+        a = if el.local then """<a href="#{el.local}" data-line="#{el.line}">""" else ""
+        ax = if a != "" then "</a>" else ""
+        """<p class="trace-elem" style="margin-left: #{1+traceWidth/2}em; text-indent: -#{1+traceWidth/2}em">#{spaces}#{a}<span class="source">#{source}</span> <span class="method">#{method}</span>#{ax}</p>"""
+      node = $("""
+        <div class="exception">
+          <p class="message">
+            <span class="class">#{e.class}</span>:
+            <span class="message">#{e.message}</span>
+          </p>
+          #{(traceElem(el) for el in e["trace-elems"]).join("")}
+        </div>
+      """)
+      if e.cause
+        node.append($("""<p class="caused-by">Caused by:</p>"""))
+        node.append(@exceptionNode(e.cause))
+      node
+
+    replPrintException: (e) =>
+      @printNode(@exceptionNode(e))
 
     onReplFlushTimeout: =>
       @replFlushTimeout = null
@@ -176,7 +224,7 @@ define ["jquery", "cs!./keybindings", "./caret"
           @replPrint("code", i.code.text, i.code.ns)
           if i.out then @replPrint("out", i.out)
           if i.error
-            @replPrint("error", i.error)
+            @replPrintException(i.error)
           else
             @replPrint("result", i.result)
       else
@@ -269,3 +317,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         @browser.reload()
       else
         @replPrint("error", "cljsc: #{msg.fs.error}")
+
+    onExceptionClick: (e) =>
+      e.preventDefault()
+      a = $(e.currentTarget)
+      @editor.loadBuffer(a.attr("href"), a.attr("data-line"))

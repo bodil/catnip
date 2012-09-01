@@ -2,12 +2,44 @@
   (:require [clojure.pprint :as pprint]
             [clojure.string :as string]
             [catnip.complete :as complete]
-            [clj-stacktrace.repl :as st]
+            [catnip.filesystem :as fs]
+            [clj-stacktrace.core :as stacktrace]
             [clojure.repl :as repl])
   (:use [clojure.test]
         [clj-info.doc2map :only [get-docs-map]]))
 
 (complete/init)
+
+(with-test
+  (defn map-if-key
+    "If hash contains key, apply function f to value of key."
+    [hash & args]
+    (if hash
+      (reduce (fn [hash [key f]]
+                (if (hash key)
+                  (assoc hash key (f (hash key)))
+                  hash))
+              hash (partition 2 args))
+      hash))
+  (is (= {:foo 5 :bar 2} (map-if-key {:foo 4 :bar 2} :foo inc)))
+  (is (= {:foo 4 :bar 2} (map-if-key {:foo 4 :bar 2} :baz inc)))
+  (is (= {:foo 5 :bar 1} (map-if-key {:foo 4 :bar 2} :foo inc :bar dec))))
+
+(defn- annotate-local [e]
+  (let [e (if (:cause e)
+            (assoc e :cause (annotate-local (:cause e)))
+            e)
+        localise (fn [el]
+                   (if-let [path (fs/ns-as-local-file (:ns el))]
+                     (assoc el :local path)
+                     el))]
+    (if (:trace-elems e)
+      (assoc e :trace-elems
+             (map localise (:trace-elems e)))
+      e)))
+
+(defn pprint-exception [e]
+  (annotate-local (stacktrace/parse-exception e)))
 
 (defn stream [s]
   (clojure.lang.LineNumberingPushbackReader. (java.io.StringReader. s)))
@@ -26,11 +58,6 @@
        (let [result (eval sexp)]
          (.data socket "ns" *ns*)
          result))))
-
-(defn pprint-exception [e]
-  (let [out (java.io.StringWriter.)]
-    (st/pst-on out false e)
-    (str out)))
 
 (defn eval-sexp [socket sexp]
   (let [out (java.io.StringWriter.)
@@ -81,21 +108,6 @@
 (defn complete-string [socket s ns]
   (let [ns (resolve-ns socket ns)]
     (complete/completions s ns)))
-
-(with-test
-  (defn map-if-key
-    "If hash contains key, apply function f to value of key."
-    [hash & args]
-    (if hash
-      (reduce (fn [hash [key f]]
-                (if (hash key)
-                  (assoc hash key (f (hash key)))
-                  hash))
-              hash (partition 2 args))
-      hash))
-  (is (= {:foo 5 :bar 2} (map-if-key {:foo 4 :bar 2} :foo inc)))
-  (is (= {:foo 4 :bar 2} (map-if-key {:foo 4 :bar 2} :baz inc)))
-  (is (= {:foo 5 :bar 1} (map-if-key {:foo 4 :bar 2} :foo inc :bar dec))))
 
 (defn document-symbol [socket s ns]
   (let [ns (resolve-ns socket ns)]

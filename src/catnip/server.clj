@@ -3,7 +3,7 @@
 ;; You can obtain one at http://mozilla.org/MPL/2.0/.
 
 (ns catnip.server
-  (:require [clojure.data.json :as json]
+  (:require [cheshire.custom :as json]
             [net.cgrand.enlive-html :as html]
             [catnip.filesystem :as fs]
             [catnip.profile :as profile]
@@ -15,6 +15,12 @@
            [org.webbitserver.handler EmbeddedResourceHandler]
            [java.net InetSocketAddress URI]
            [java.util.concurrent Executors]))
+
+(json/add-encoder
+ java.lang.Object
+ (fn [c out] (.writeString out (try (.getName c)
+                                   (catch Exception e
+                                     (.toString c))))))
 
 (defn send-index [r]
   (let [nodes (html/html-resource "catnip/index.html")
@@ -32,7 +38,7 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
-  (let [msg (json/read-json json)
+  (let [msg (json/parse-string json true)
         results
         (try
           (cond
@@ -61,13 +67,13 @@
             {:error (repl/pprint-exception e)}))]
     (try
       (.send socket
-             (json/json-str
+             (json/generate-string
               (assoc results
                 :ns (str (.data socket "ns"))
                 :tag (:tag msg))))
       (catch Exception e
         (let [message (repl/pprint-exception e)]
-          (.send socket (json/json-str
+          (.send socket (json/generate-string
                         {:error "Failed to serialise response."
                          :exception message})))))))
 
