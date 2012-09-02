@@ -6,7 +6,8 @@
             [clj-stacktrace.core :as stacktrace]
             [clojure.repl :as repl])
   (:use [clojure.test]
-        [clj-info.doc2map :only [get-docs-map]]))
+        [clj-info.doc2map :only [get-docs-map]]
+        [catnip.annotate :only [annotate-form]]))
 
 (complete/init)
 
@@ -64,16 +65,20 @@
   (let [out (java.io.StringWriter.)
         code-ns (str (.data socket "ns"))]
     (try
-      {:code {:ns code-ns :text (ppr sexp)}
-       :result (ppr (eval* socket sexp
-                           {#'*out* out #'*err* out #'*test-out* out}))
-       :out (str out)}
+      (let [result (eval* socket sexp
+                          {#'*out* out #'*err* out
+                           #'*test-out* out})]
+        {:code {:ns code-ns :text (ppr sexp)
+              :form (annotate-form (.data socket "ns") sexp)}
+       :result (annotate-form (.data socket "ns") result)
+       :out (str out)})
       (catch Exception e
         (let [e (repl/root-cause e)
               msg (.getMessage e)
               chop-exc-re #"^java\.[\w.]+Exception: (.*)$"
               errline-re #":(\d+)\)$"]
-          {:code {:ns code-ns :text (ppr sexp)}
+          {:code {:ns code-ns :text (ppr sexp)
+                  :form (annotate-form (.data socket "ns") sexp)}
            :out (str out)
            :error (pprint-exception e)
            :annotation

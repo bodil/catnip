@@ -4,7 +4,8 @@
 
 define ["jquery", "cs!./keybindings", "./caret"
         "cs!./suggestbox", "ace/lib/event_emitter"
-], ($, keybindings, caret, SuggestBox, event_emitter) ->
+        "cs!./pprint"
+], ($, keybindings, caret, SuggestBox, event_emitter, pprint) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -151,10 +152,17 @@ define ["jquery", "cs!./keybindings", "./caret"
     replPrint: (type, msg, ns) =>
       node = $("<p></p>").addClass(type)
       if type == "code" and ns
-        node.text("#{ns}» ").append($('<span class="clojure"></span>').text(msg))
+        node.text("#{ns}» ")
+        if typeof msg == "string"
+          node.append($('<span class="clojure"></span>').text(msg))
+        else
+          pprint(node, msg)
       else
-        node.text(msg)
-      node.html(node.html().replace(/https?:\/\/\S*/, (i) -> "<a href=\"#{i}\" target=\"_blank\">#{i}</a>"))
+        if typeof msg == "string"
+          node.text(msg)
+          node.html(node.html().replace(/https?:\/\/\S*/g, (i) -> "<a href=\"#{i}\" target=\"_blank\">#{i}</a>"))
+        else
+          pprint(node, msg)
       @printNode(node)
 
     exceptionNode: (e) =>
@@ -205,9 +213,12 @@ define ["jquery", "cs!./keybindings", "./caret"
       @lastOutputNode = null
 
     onErrorMessage: (msg) =>
-      @replPrint("error",
-        if msg.line? then "Line #{msg.line}: #{msg.error}" else msg.error)
-      @replPrintException(msg.exception)
+      if typeof msg.error == "string"
+        @replPrint("error",
+          if msg.line? then "Line #{msg.line}: #{msg.error}" else msg.error)
+        @replPrintException(msg.exception)
+      else
+        @replPrintException(msg.error)
       if msg.line? and msg.annotation?
         @editor.getSession().setAnnotations([
           row: msg.line - 1
@@ -222,7 +233,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       msg = @correctLines(msg)
       if msg.tag == "repl"
         for i in msg.eval
-          @replPrint("code", i.code.text, i.code.ns)
+          @replPrint("code", i.code.form, i.code.ns)
           if i.out then @replPrint("out", i.out)
           if i.error
             @replPrintException(i.error)
@@ -289,6 +300,7 @@ define ["jquery", "cs!./keybindings", "./caret"
               @browser.reload()
 
     correctLines: (msg) =>
+      if not msg.eval?.length then return msg
       lines = (l.trim() for l in @editor.getSession().getValue().split("\n"))
       lines = ((if l[0] == ";" then "" else l) for l in lines)
       closest = (n) ->

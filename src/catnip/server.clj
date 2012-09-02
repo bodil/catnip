@@ -16,11 +16,11 @@
            [java.net InetSocketAddress URI]
            [java.util.concurrent Executors]))
 
-(json/add-encoder
- java.lang.Object
- (fn [c out] (.writeString out (try (.getName c)
-                                   (catch Exception e
-                                     (.toString c))))))
+(json/add-encoder java.lang.Class
+                  (fn [c out] (.writeString out (.getName c))))
+
+(json/add-encoder java.lang.Object
+                  (fn [c out] (.writeString out (str c))))
 
 (defn send-index [r]
   (let [nodes (html/html-resource "catnip/index.html")
