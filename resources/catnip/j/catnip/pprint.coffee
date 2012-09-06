@@ -22,8 +22,7 @@ define ["jquery", "cs!./doctip"], ($, Doctip) ->
     span(s, "lparen", parens[0])
     for value in forms
       pprint(s, value)
-      space = document.createTextNode(" ")
-      s.append(space)
+      space = span(s, "whitespace", " ")
     $(space).remove()
     span(s, "rparen", parens[1])
     s

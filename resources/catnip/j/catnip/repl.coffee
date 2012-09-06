@@ -22,6 +22,8 @@ define ["jquery", "cs!./keybindings", "./caret"
       @display.on "click", "div.exception a", @onExceptionClick
       @display.on "mouseover", "a.clojure", @onMouseOverFunction
       @display.on "mouseout", "a.clojure", @onMouseOutFunction
+      @display.on "mouseover", ".lparen, .rparen, .whitespace", @onMouseOverParen
+      @display.on "mouseout", ".lparen, .rparen, .whitespace", @onMouseOutParen
       @display.on "click", ".clojure", @onFormClick
       @editor.on "sexp-to-repl", @onSexpToRepl
 
@@ -349,6 +351,14 @@ define ["jquery", "cs!./keybindings", "./caret"
       if @hoverDoctip
         @hoverDoctip = null
         Doctip.pop()
+
+    onMouseOverParen: (e) =>
+      e.stopPropagation()
+      $(e.target).parent().addClass("paren-match")
+
+    onMouseOutParen: (e) =>
+      e.stopPropagation()
+      $(e.target).parent().removeClass("paren-match")
 
     onFormClick: (e) =>
       e.stopPropagation()

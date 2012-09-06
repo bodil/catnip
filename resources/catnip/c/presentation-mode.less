@@ -1,0 +1,16 @@
+body.presentation-mode {
+    div.navbar, div.left-pane, .ace_cursor {
+        opacity: 0;
+        .transition(opacity 1s ease);
+    }
+
+    div.right-pane {
+        margin: -36pt -6pt 0 -50%;
+        .transition(margin 1s ease);
+    }
+}
+
+div.navbar, div.left-pane, .ace_cursor {
+    opacity: 1;
+    .transition(opacity 1s ease);
+}

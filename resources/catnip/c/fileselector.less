@@ -1,0 +1,78 @@
+div.filename-entry, div.file-selector {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    .background-vertical-alpha();
+    z-index: 2000;
+}
+
+div.filename-entry {
+    text-align: center;
+
+    div.entry {
+        display: inline-block;
+        vertical-align: middle;
+        width: 100%;
+        color: white;
+        font-size: 40pt;
+        line-height: 1.2em;
+        text-shadow: 0 0 16px white;
+        font-weight: bold;
+    }
+
+    div.entry:focus {
+        outline: none;
+    }
+}
+
+div.filename-entry:before {
+    content: "";
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+
+div.file-selector {
+    text-align: center;
+    opacity: 0;
+
+    div.viewport {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        overflow: hidden;
+        vertical-align: middle;
+
+        ul {
+            list-style: none;
+            margin: 50% 0;
+            padding: 0;
+
+            li {
+                text-align: center;
+                color: white;
+                font-size: 40pt;
+                line-height: 1.2em;
+                text-shadow: 0 0 8px white;
+
+                span.filter {
+                    color: #fba;
+                }
+            }
+
+            li.active {
+                text-shadow: 0 0 16px white;
+                font-weight: bold;
+            }
+        }
+    }
+}
+
+div.fade-in {
+    opacity: 1;
+    .transition(opacity 0.2s ease);
+}

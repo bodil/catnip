@@ -1,0 +1,27 @@
+div.frame {
+    background: url("/m/cork_1.png");
+    position: absolute;
+    top: 6pt;
+    bottom: 6pt;
+    left: 12pt;
+    right: 12pt;
+    border-radius: 6pt;
+}
+
+div.left-pane {
+    position: absolute;
+    top: 42pt;
+    bottom: 6pt;
+    left: 0;
+    right: 50%;
+}
+
+div.right-pane {
+    position: absolute;
+    top: 42pt;
+    bottom: 6pt;
+    left: 50%;
+    right: 0;
+    z-index: 1337;
+    .transition(margin 1s ease);
+}

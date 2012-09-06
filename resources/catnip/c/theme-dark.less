@@ -1,0 +1,148 @@
+body.theme-dark {
+    div.frame {
+        background: #222;
+    }
+
+    #editor, div.repl, #view {
+        border-top: 1px solid #111;
+        border-left: 1px solid #111;
+        border-bottom: 1px solid #333;
+        border-right: 1px solid #333;
+    }
+
+    #editor, #repl-display, div.repl-holder, #repl-input {
+        background: #2d2d2d;
+        color: #ccc;
+    }
+
+    div.repl-holder {
+        border-top: 2px groove #444;
+    }
+
+    #repl-display {
+        &.test-pass {
+            background-color: @green;
+        }
+
+        &.test-fail {
+            background-color: @red;
+        }
+
+        &.test-error {
+            background-color: @orange;
+        }
+
+        p.out {
+            color: #ccc;
+        }
+
+        p.code {
+            color: #c9c;
+        }
+
+        p.result, p.test-pass {
+            color: #9c9;
+        }
+
+        p.error, p.test-fail {
+            color: #f98;
+        }
+
+        p.test-error {
+            color: #f99157;
+        }
+
+        div.exception {
+            a {
+                text-decoration: none;
+                background: #434343;
+                &:hover {
+                    background: #545454;
+                }
+            }
+
+            p {
+                color: #f98;
+
+                span.message {
+                    color: #ccc;
+                }
+
+                span.source {
+                    color: #b58900;
+                }
+
+                span.method {
+                    color: #6c71c4;
+                }
+            }
+        }
+
+        .clojure {
+            color: #ccc;
+            cursor: pointer;
+
+            &:hover {
+                background: #444;
+            }
+
+            &.paren-match {
+                background: #444 !important;
+
+                > .lparen, > .rparen {
+                    background: #339;
+                }
+            }
+
+            &.list, &.vector, &.set, &.map {
+                &:hover { background: inherit; }
+            }
+            &.lparen, &.rparen { color: #c9c; }
+            &.reader-char {}
+            &.function, &.macro,
+            &.special-form { color: #69c; }
+            &.symbol {}
+            &.keyword { color: #9c9; }
+            &.number { color: #f99157; }
+            &.string { color: #9c9; }
+            &.re { color: #9c9; }
+            &.var,
+            &.object { color: #f2777a; }
+        }
+    }
+
+    #repl-prompt {
+        color: #c9c;
+    }
+
+    #location-bar {
+        background: #aaa;
+        border: 1px solid #888;
+        color: black;
+    }
+
+    ::-webkit-scrollbar {
+        background: #2d2d2d;
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #2d2d2d;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #666;
+        border-radius: 3px;
+
+        &:hover {
+            background: #999;
+        }
+    }
+
+    ::-webkit-scrollbar-button {
+        display: none;
+    }
+}

@@ -1,0 +1,41 @@
+#repl-display {
+    a.clojure {
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
+
+    .clojure {
+        color: black;
+        cursor: pointer;
+
+        &:hover {
+            background: #fdd;
+        }
+
+        &.paren-match {
+            background: #fdd !important;
+
+            > .lparen, > .rparen {
+                background: #faa;
+            }
+        }
+
+        &.list, &.vector, &.set, &.map {
+            &:hover { background: inherit; }
+        }
+        &.lparen, &.rparen { color: rgb(147, 15, 128); }
+        &.reader-char {}
+        &.function, &.macro,
+        &.special-form { color: rgb(60, 76, 114); }
+        &.symbol {}
+        &.keyword { color: #1A1AA6; }
+        &.number { color: rgb(0, 0, 205); }
+        &.string { color: #1A1AA6; }
+        &.re { color: #1A1AA6; }
+        &.var,
+        &.object { color: rgb(49, 132, 149); }
+    }
+}

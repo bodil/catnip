@@ -1,0 +1,22 @@
+html {
+    height: 100%;
+}
+
+body {
+    background: url("/m/black_paper.png");
+    height: 100%;
+    visibility: visible;
+    opacity: 1;
+    .transition(opacity 0.5s ease);
+}
+
+body.loading {
+    opacity: 0;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+}
+
+.icon-empty:before { content: " "; }

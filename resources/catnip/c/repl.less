@@ -1,0 +1,174 @@
+div.repl {
+    position: absolute;
+    height: 131pt;
+    bottom: -2px;
+    left: 12pt;
+    right: 6pt;
+    background: #f8f8f8;
+    .bevel-border;
+}
+
+#repl-display {
+    position: absolute;
+    top: 0;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+    background-color: #f8f8f8;
+    background-image: url("/m/clojure-background.svg");
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+
+    p {
+        line-height: 24px;
+        margin: 0 6pt;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    p.code {
+        color: @purple;
+    }
+
+    p.out {
+        color: black;
+    }
+
+    p.result {
+        color: @green;
+    }
+
+    p.error {
+        color: @red;
+    }
+
+    p.test-pass {
+        color: @green;
+    }
+
+    p.test-fail {
+        color: @red;
+    }
+
+    p.test-error {
+        color: @orange;
+    }
+
+    div.exception {
+        margin: 0;
+        padding: 0;
+
+        a {
+            color: inherit;
+            text-decoration: underline;
+
+            &:hover {
+                background: rgba(255,255,255,0.6);
+            }
+        }
+
+        p {
+            color: @red;
+            white-space: normal;
+            margin: 0;
+            padding: 0;
+            margin-left: 2em;
+            text-indent: -2em;
+
+            span.message {
+                color: black;
+            }
+
+            span.source {
+                color: @orange;
+            }
+
+            span.method {
+                color: @purple;
+            }
+
+            &.trace-elem {
+                white-space: pre-wrap;
+            }
+        }
+    }
+}
+
+#repl-display.test-pass {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @green;
+}
+
+#repl-display.test-fail {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @red;
+}
+
+#repl-display.test-error {
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background-color: @orange;
+}
+
+#repl-display.test-clear {
+    .transition(background-color 1s ease);
+}
+
+div.repl-holder {
+    position: absolute;
+    height: 30px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 2px groove white;
+    margin: 0;
+    padding: 0;
+    background: white;
+
+    table {
+        margin-top: 1px;
+        width: 100%;
+        td.input-cell {
+            width: 100%;
+        }
+    }
+}
+
+#repl-prompt {
+    width: 1;
+    color: @purple;
+    padding-left: 6pt;
+    padding-top: 1px;
+    white-space: nowrap;
+}
+
+#repl-prompt:after {
+    content: '»';
+    padding-right: 0.3em;
+}
+
+#repl-input {
+    border: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    color: black;
+}
+
+#repl-input:focus {
+    box-shadow: none;
+}

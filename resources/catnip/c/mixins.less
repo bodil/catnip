@@ -1,0 +1,23 @@
+.background-vertical-alpha(@r: 0, @g: 0, @b: 0, @stop1: 35%, @stop2: 65%) {
+    background-color: rgba(@r, @g, @b, 0.9);
+    background: -webkit-linear-gradient(rgba(@r,@g,@b,0) 0%,rgba(@r,@g,@b,1) @stop1,rgba(@r,@g,@b,1) @stop2,rgba(@r,@g,@b,0) 100%);
+    background: -moz-linear-gradient(rgba(@r,@g,@b,0) 0%,rgba(@r,@g,@b,1) @stop1,rgba(@r,@g,@b,1) @stop2,rgba(@r,@g,@b,0) 100%);
+    background: -ms-linear-gradient(rgba(@r,@g,@b,0) 0%,rgba(@r,@g,@b,1) @stop1,rgba(@r,@g,@b,1) @stop2,rgba(@r,@g,@b,0) 100%);
+    background: -o-linear-gradient(rgba(@r,@g,@b,0) 0%,rgba(@r,@g,@b,1) @stop1,rgba(@r,@g,@b,1) @stop2,rgba(@r,@g,@b,0) 100%);
+    background: linear-gradient(rgba(@r,@g,@b,0) 0%,rgba(@r,@g,@b,1) @stop1,rgba(@r,@g,@b,1) @stop2,rgba(@r,@g,@b,0) 100%);
+}
+
+.transition(@rule) {
+    -webkit-transition: @rule;
+    -moz-transition: @rule;
+    -ms-transition: @rule;
+    -o-transition: @rule;
+    transition: @rule;
+}
+
+.bevel-border {
+    border-top: 1px solid #aaa;
+    border-left: 1px solid #aaa;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+}

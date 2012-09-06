@@ -1,0 +1,25 @@
+ul.repl-suggest {
+    list-style: none;
+    position: fixed;
+    margin: 0 0 4px 0;
+    border-bottom: 1px solid #aaa;
+    border-right: 1px solid #aaa;
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    background: white;
+    overflow-y: scroll;
+    white-space: nowrap;
+    max-height: 6em;
+    z-index: 2000;
+
+    li {
+        padding: 0 8pt;
+        font-size: small;
+        cursor: pointer;
+    }
+
+    li.active {
+        background: #abf;
+        color: white;
+    }
+}
