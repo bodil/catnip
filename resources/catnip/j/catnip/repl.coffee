@@ -4,8 +4,8 @@
 
 define ["jquery", "cs!./keybindings", "./caret"
         "cs!./suggestbox", "ace/lib/event_emitter"
-        "cs!./pprint"
-], ($, keybindings, caret, SuggestBox, event_emitter, pprint) ->
+        "cs!./pprint", "cs!./doctip"
+], ($, keybindings, caret, SuggestBox, event_emitter, pprint, Doctip) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -20,6 +20,8 @@ define ["jquery", "cs!./keybindings", "./caret"
 
       @input.on "keydown", @onKeyDown
       @display.on "click", "div.exception a", @onExceptionClick
+      @display.on "mouseover", "a.clojure", @onMouseOverFunction
+      @display.on "mouseout", "a.clojure", @onMouseOutFunction
       @editor.on "sexp-to-repl", @onSexpToRepl
 
       @history = []
@@ -338,3 +340,12 @@ define ["jquery", "cs!./keybindings", "./caret"
 
     onSexpToRepl: (e) =>
       @input.val(e.sexp).focus()
+
+    onMouseOverFunction: (e) =>
+      @hoverDoctip = JSON.parse($(e.target).attr("data-doc"))
+      Doctip.push(@hoverDoctip)
+
+    onMouseOutFunction: (e) =>
+      if @hoverDoctip
+        @hoverDoctip = null
+        Doctip.pop()

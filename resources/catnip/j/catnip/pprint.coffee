@@ -1,4 +1,8 @@
-define ["jquery"], ($) ->
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
+define ["jquery", "cs!./doctip"], ($, Doctip) ->
 
   span = (node, cl, text) ->
     text = "" if not text
@@ -6,9 +10,10 @@ define ["jquery"], ($) ->
     node.append(s)
     s
 
-  a = (node, cl, text, href) ->
+  a = (node, cl, text, doc) ->
     text = "" if not text
-    s = $("<a></a>").addClass("clojure").addClass(cl).attr("href", href).text(text)
+    s = $("<a></a>").addClass("clojure").addClass(cl)
+         .attr("data-doc", JSON.stringify(doc)).text(text)
     node.append(s)
     s
 
@@ -73,11 +78,11 @@ define ["jquery"], ($) ->
         $(space).remove()
         span(s, "rparen", "}")
       when "function"
-        span(node, "function", form.name)
+        a(node, "function", form.name, form.value)
       when "macro"
-        span(node, "macro", form.name)
+        a(node, "macro", form.name, form.value)
       when "special-form"
-        span(node, "special-form", form.value.name)
+        a(node, "special-form", form.value.name, form.value)
       when "symbol"
         name = form.value
         name = "#{form.namespace}/#{name}" if form.namespace

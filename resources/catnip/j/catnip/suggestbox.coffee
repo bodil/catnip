@@ -87,7 +87,7 @@ define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
       e?.preventDefault()
       @closed = true
       if @doctip
-        @doctip.close()
+        Doctip.pop()
         @doctip = null
       @box.remove()
       @_emit "closed"
@@ -102,6 +102,6 @@ define ["jquery", "ace/lib/event_emitter", "cs!./doctip"
         if msg.doc? and msg.tag == @boxId
           e.stopPropagation()
           if @doctip
-            @doctip.close()
-            @doctip = null
-          @doctip = new Doctip(msg.doc, $("#view"))
+            Doctip.pop()
+          @doctip = msg.doc
+          Doctip.push(@doctip)

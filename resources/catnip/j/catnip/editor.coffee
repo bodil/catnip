@@ -110,7 +110,7 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
     keyboardDelegate: (data, hashId, keystring, keyCode, e) =>
       if @doctip
-        @doctip.close()
+        Doctip.pop()
         @doctip = null
       if @suggestBox
         if e?
@@ -308,9 +308,9 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       @socket.doc(@guessNamespace(), @getSymbolAtPoint(), "editor")
 
     onDocumentSymbol: (msg) =>
-      @doctip?.close()
-      if msg.doc
-        @doctip = new Doctip(msg.doc, $("#view"))
+      if @doctip then Doctip.pop()
+      @doctip = msg.doc
+      if @doctip then Doctip.push(@doctip)
 
     snippetKeys: => k for own k of window.CatnipProfile.snippets
     snippet: (s) => window.CatnipProfile.snippets[s]
