@@ -265,9 +265,8 @@ define ["jquery", "cs!./keybindings", "./caret"
           else
             test = msg.eval[msg.eval.length - 1]
             result = {}
-            for i in test.result.match(/{(.*)}/)[1].split(",")
-              [key, value] = i.match(/^\s*:(.*)\s+(.*)$/)[1..]
-              result[key] = +value
+            for i in test.result.value[1..]
+              result[i.key.value] = i.value.value
             type = if result.error
               "test-error"
             else if result.fail
