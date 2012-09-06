@@ -4,8 +4,8 @@
 
 define ["jquery", "cs!./keybindings", "./caret"
         "cs!./suggestbox", "ace/lib/event_emitter"
-        "cs!./pprint", "cs!./doctip"
-], ($, keybindings, caret, SuggestBox, event_emitter, pprint, Doctip) ->
+        "cs!./pprint", "cs!./doctip", "cs!./unpprint"
+], ($, keybindings, caret, SuggestBox, event_emitter, pprint, Doctip, unpprint) ->
 
   EventEmitter = event_emitter.EventEmitter
 
@@ -22,6 +22,7 @@ define ["jquery", "cs!./keybindings", "./caret"
       @display.on "click", "div.exception a", @onExceptionClick
       @display.on "mouseover", "a.clojure", @onMouseOverFunction
       @display.on "mouseout", "a.clojure", @onMouseOutFunction
+      @display.on "click", ".clojure", @onFormClick
       @editor.on "sexp-to-repl", @onSexpToRepl
 
       @history = []
@@ -349,3 +350,16 @@ define ["jquery", "cs!./keybindings", "./caret"
       if @hoverDoctip
         @hoverDoctip = null
         Doctip.pop()
+
+    onFormClick: (e) =>
+      e.stopPropagation()
+      form = $(e.target)
+      if form.hasClass("lparen") or form.hasClass("rparen")
+        form = form.parent()
+      form = unpprint(form[0])
+
+      val = @input.val()
+      caretPos = @input.caret().begin
+      val = val[...caretPos] + form + val[caretPos..]
+      @input.val(val)
+      @input.focus()

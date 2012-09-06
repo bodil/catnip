@@ -66,6 +66,7 @@ define ["jquery", "ace/lib/event_emitter"
 
   dispatch =
     push: (doc) ->
+      if not doc then return
       if not tip?
         stack.push(doc)
         tip = new Doctip(doc, $("#view"))
