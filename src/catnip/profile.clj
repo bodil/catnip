@@ -5,7 +5,7 @@
 (ns catnip.profile
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pprint]
-            [clojure.data.json :as json]))
+            [cheshire.custom :as json]))
 
 (def default-profile
   {:snippets
@@ -30,5 +30,5 @@
 (defn wrap-profile []
   (let [profile (read-profile)]
     (str "window.CatnipProfile = "
-         (json/json-str profile)
+         (json/generate-string profile)
          ";\n")))
