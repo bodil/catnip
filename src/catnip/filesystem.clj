@@ -48,7 +48,7 @@
 (defn subpaths [path]
   (let [ignore (ignored-paths)]
     (map (partial relative-to project-path)
-         (filter #(and (.isDirectory %) (not (= project-path %))
+         (filter #(and (.isDirectory %) (not= project-path %)
                        (not (ignore %)))
                  (file-seq path)))))
 
@@ -72,14 +72,12 @@
     (io/file parent (str base ".clj"))))
 
 (defn ns-as-local-file [ns]
-  (if ns
+  (when ns
     (let [ns-path (clojure.string/split ns #"\.")
         ns-file (join-paths project-path "src" ns-path)
         file (append-clj-prefix ns-file)]
-    (if (.isFile file)
-      (relative-to project-path file)
-      nil))
-    nil))
+    (when (.isFile file)
+      (relative-to project-path file)))))
 
 (defn fs-command [msg]
   (let [result (case (:command msg)

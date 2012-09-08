@@ -1,3 +1,7 @@
+;; This Source Code Form is subject to the terms of the Mozilla Public
+;; License, v. 2.0. If a copy of the MPL was not distributed with this file,
+;; You can obtain one at http://mozilla.org/MPL/2.0/.
+
 (ns catnip.repl
   (:require [clojure.pprint :as pprint]
             [clojure.string :as string]
@@ -88,7 +92,7 @@
   (loop [line (.getLineNumber s)
          sexp (read s false nil)
          results []]
-    (if (not (nil? sexp))
+    (if-not (nil? sexp)
       (let [result (assoc (eval-sexp socket sexp) :line line)]
         (if (result :error)
           (conj results result)

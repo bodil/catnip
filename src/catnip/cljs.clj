@@ -10,13 +10,12 @@
 (with-test
   (defn extract-cljsbuild [project-file]
     (let [project (read-string project-file)]
-      (if (seq? project)
+      (when (seq? project)
         (loop [project project]
           (cond
            (= :cljsbuild (first project)) (second project)
            (not (seq project)) nil
-           :else (recur (rest project))))
-        nil)))
+           :else (recur (rest project)))))))
   (is (= {:ohai "noob"} (extract-cljsbuild
                          "(defproject catnip \"0.hai\" :dependencies [[o/hai \"0.hai\"]] :cljsbuild {:ohai \"noob\"})")))
   (is (nil? (extract-cljsbuild "hai"))))

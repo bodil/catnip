@@ -94,7 +94,7 @@
 (with-test
   (defn join-paths [& paths]
     (loop [file nil paths (flatten paths)]
-      (if (not (seq paths))
+      (if-not (seq paths)
         file
         (if file
           (recur (io/file file (first paths)) (rest paths))
