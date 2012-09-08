@@ -9,8 +9,6 @@
         [clj-info.doc2map :only [get-docs-map]]
         [catnip.annotate :only [annotate-form]]))
 
-(complete/init)
-
 (with-test
   (defn map-if-key
     "If hash contains key, apply function f to value of key."

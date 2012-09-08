@@ -8,6 +8,7 @@
             [catnip.filesystem :as fs]
             [catnip.profile :as profile]
             [catnip.repl :as repl]
+            [catnip.complete :as complete]
             [clojure.repl])
   (:use [clojure.test])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler
@@ -45,9 +46,6 @@
             (:eval msg)
             (repl/eval-string socket (:eval msg))
 
-            ;; (:cljs msg)
-            ;; (fs/cljs-compile (:cljs msg))
-
             (:complete msg)
             {:complete (repl/complete-string
                         socket (:complete msg) (:ns msg))}
@@ -78,6 +76,7 @@
                          :exception message})))))))
 
 (defn start [port]
+  (complete/init)
   (let [server (WebServers/createWebServer
                 (Executors/newSingleThreadExecutor)
                 (InetSocketAddress. "127.0.0.1" port)
