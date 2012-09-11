@@ -20,26 +20,29 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
         @load(@locationBar.val())
       @refreshButton.on "click", (e) => @reload()
 
-      @frame[0].src = window.CatnipProfile["default-browser-url"]
+      @load(window.CatnipProfile["default-browser-url"])
 
-    syncLocationBar: =>
-      @locationBar.val(@frame[0].src)
+    syncLocationBar: (url) =>
+      @url = url or @frame[0].src
+      @locationBar.val(@url)
 
     load: (url) =>
       if not url.match(/^\w+:\/\//i)
         url = "http://#{url}"
-      @frame[0].src = url
+      @frame[0].src = @url = url
 
     reload: =>
-      @frame[0].src = @frame[0].src if @frame[0].src
+      @frame[0].src = @url
 
-    onWindowMessage: (e) ->
+    onWindowMessage: (e) =>
       m = e.data.match(/^client-frame:(.*)/)
       if m
         args = JSON.parse(m[1])
         if args.console?
           msg = args.console.arguments.join(" ")
           window.repl.replPrint("out", msg)
+        else if args.url?
+          @syncLocationBar(args.url)
 
     nextSlide: (e) =>
       e?.preventDefault()
