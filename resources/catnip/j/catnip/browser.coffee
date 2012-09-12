@@ -20,7 +20,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
         @load(@locationBar.val())
       @refreshButton.on "click", (e) => @reload()
 
-      @load(window.CatnipProfile["default-browser-url"])
+      @frame[0].src = @url = window.CatnipProfile["default-browser-url"]
 
     syncLocationBar: (url) =>
       @url = url or @frame[0].src
