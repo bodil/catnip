@@ -12,10 +12,6 @@ define ["jquery", "cs!./socket", "cs!./editor"
     $("body").addClass("theme-#{theme}")
 
     socket = new Socket()
-    loadingComplete = ->
-      setTimeout (-> $("body").removeClass("loading")), 1000
-      socket.removeListener "message", loadingComplete
-    socket.on "message", loadingComplete
 
     editor = new Editor(document.getElementById("editor"), socket)
     window.browser = browser = new Browser $("#view"), $("#location-bar"), $("#location-refresh"), socket
@@ -24,6 +20,7 @@ define ["jquery", "cs!./socket", "cs!./editor"
     new OptionsMenu($("#options-menu"), editor)
 
     editor.loadBuffer(editor.getBufferAccordingToURL())
+    setTimeout (-> $("body").removeClass("loading")), 1000
 
     togglePresentationMode = (e) ->
       e?.preventDefault()
