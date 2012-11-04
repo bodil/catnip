@@ -10,3 +10,4 @@ pom.xml
 /resources/catnip/cljs
 /plugin/pom.xml.asc
 /pom.xml.asc
+/.lein-failures

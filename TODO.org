@@ -1,4 +1,3 @@
 * Spinner or similar while REPL is evaluating long running code.
-* Evaluate sexps from the editor.
 * Consider Chrome plugin to circumvent browser iframe's security restrictions.
 * REPL for browser iframe, both JS and CLJS.
