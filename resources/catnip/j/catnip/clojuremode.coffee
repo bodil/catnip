@@ -104,13 +104,8 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
         prev--
       [tokens, indent, parens, lastcloseparen] = @_tokenise(tokenised[prev])
       if parens < 0 and lastcloseparen != null
-<<<<<<< HEAD
-        {column: indent} = doc.findMatchingBracket(
-          {row: row - 1, column: lastcloseparen})
-=======
         pos = doc.findMatchingBracket({row: prev, column: lastcloseparen})
         if pos then indent = pos.column
->>>>>>> ed2700f... ohai
       indent
 
     autoIndentRow: (doc, tokenised, row) =>
@@ -121,17 +116,13 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
       [current, indent]
 
     autoIndentCurrentRow: (doc) =>
+      range = doc.selection.getRange()
       pos = doc.selection.getCursor()
-<<<<<<< HEAD
-      [current, indent] = @autoIndentRow(doc, pos.row)
-      if pos.column < current
-=======
       tokenised = @tokeniseDocument(doc, range.end.row)
       for row in [range.start.row..range.end.row]
         i = @autoIndentRow(doc, tokenised, row)
         if row == pos.row then [current, indent] = i
       if doc.selection.isEmpty() and pos.column < current
->>>>>>> ed2700f... ohai
         doc.selection.moveCursorTo(pos.row, indent)
 
     autoIndentBuffer: (doc) =>
