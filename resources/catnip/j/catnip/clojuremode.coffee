@@ -2,14 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
-(clojure_mode, cstyle, range) ->
-  ClojureMode = clojure_mode.Mode
+define ["ace/mode/text", "ace/mode/behaviour/cstyle", "ace/range",
+"ace/tokenizer", "cs!catnip/clojuretokeniser"],
+(textmode, cstyle, range, tokenizer, highlight) ->
+  TextMode = textmode.Mode
   Range = range.Range
+  Tokenizer = tokenizer.Tokenizer
+  ClojureHighlightRules = highlight
 
-  openparens = ["(", "[", "{"]
+  openparens = ["(", "[", "{", '#{', "'("]
   closeparens = [")", "]", "}"]
-  unalign = ["text", "keyword"]
+  unalign = ["text"]
 
   spaces = (n) -> new Array(n + 1).join(" ")
   getIndent = (line) ->
@@ -19,10 +22,32 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
   isfunc = (token) ->
     token.type == "support.function" and token.value in ["fn", "defn"]
 
-  class ExtendedCljMode extends ClojureMode
+  class ExtendedCljMode extends TextMode
     constructor: ->
       super
+      @$tokenizer = new Tokenizer(new ClojureHighlightRules().getRules())
       @$behaviour = new cstyle.CstyleBehaviour()
+
+    toggleCommentLines: (state, doc, startRow, endRow) =>
+      outdent = true
+      re = /^(\s*)#/
+
+      for i in [startRow...endRow]
+        if !re.test(doc.getLine(i))
+          outdent = false
+          break
+
+      if outdent
+        deleteRange = new Range(0, 0, 0, 0)
+        for i in [startRow...endRow]
+          line = doc.getLine(i)
+          m = line.match(re)
+          deleteRange.start.row = i
+          deleteRange.end.row = i
+          deleteRange.end.column = m[0].length
+          doc.replace(deleteRange, m[1])
+      else
+        doc.indentRows(startRow, endRow, ";")
 
     _tokenise: (line, state) =>
       if line.state?
@@ -32,7 +57,9 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
         tokens = @$tokenizer.getLineTokens(line, state).tokens
       pos = 0
       parens = 0
-      indent = if tokens[0]?.type in ["string", "text"] then getIndent(tokens[0].value) else 0
+      indent = if tokens[0]?.type in [
+        "string", "text"
+      ] then getIndent(tokens[0].value) else 0
       lastcloseparen = null
       pindent = []
       infunc = null
@@ -42,19 +69,17 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
         newpos = pos + token.value.length
         if isfunc(token) and last.value == "("
           infunc = pos
-        if token.type == "string" and token.value == "\""
-          null
-        else if token.type not in unalign
+        if token.type not in unalign
           if sinceparen != null
             if sinceparen < indentingsince
               indent = pos
             sinceparen++
-        else if token.type == "keyword"
+        if token.type == "keyword"
           if token.value in openparens
             sinceparen = 0
             indentingsince = if token.value == "(" then 2 else 1
             parens++
-            pindent.push(pos)
+            pindent.push(indent)
           else if token.value in closeparens
             parens--
             if parens >= 0
