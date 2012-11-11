@@ -99,13 +99,15 @@
           (recur (.getLineNumber s) (read s false nil) (conj results result))))
       results)))
 
-(defn eval-string [socket s]
+(defn eval-string [socket path s]
   (let [s (stream s)]
     (try
-      {:eval (eval-stream socket s)}
+      {:path path
+       :eval (eval-stream socket s)}
       (catch Exception e
         (let [e (repl/root-cause e)]
-          {:error (pprint-exception e)
+          {:path path
+           :error (pprint-exception e)
            :annotation (.getMessage e)
            :line (.getLineNumber s)})))))
 

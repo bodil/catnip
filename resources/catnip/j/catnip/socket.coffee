@@ -50,9 +50,14 @@ define ["jquery", "ace/lib/event_emitter"
         fs:
           command: "cljsc"
 
-    eval: (form, tag) =>
+    eval: (path, form, tag) =>
+      if not tag?
+        tag = form
+        form = path
+        path = "<repl>"
       @send tag,
         eval: form
+        path: path
 
     files: (tag) =>
       @send tag,

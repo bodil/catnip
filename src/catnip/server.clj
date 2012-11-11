@@ -44,7 +44,7 @@
         (try
           (cond
             (:eval msg)
-            (repl/eval-string socket (:eval msg))
+            (repl/eval-string socket (:path msg) (:eval msg))
 
             (:complete msg)
             {:complete (repl/complete-string

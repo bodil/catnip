@@ -107,7 +107,7 @@ define ["jquery", "cs!./keybindings", "./caret"
     onSocketMessage: (e) =>
       msg = e.message
       if msg.ns
-         @prompt.text(msg.ns)
+        @prompt.text(msg.ns)
       if msg.error?
         e.stopPropagation()
         @onErrorMessage msg
@@ -170,9 +170,9 @@ define ["jquery", "cs!./keybindings", "./caret"
           pprint(node, msg)
       @printNode(node)
 
-    exceptionNode: (e) =>
+    exceptionNode: (e, posInFile) =>
       if e.cause and e.class.match(/.*clojure\.lang\.Compiler\$CompilerException.*/)
-        return @exceptionNode(e.cause)
+        return @exceptionNode(e.cause, posInFile)
 
       elemLength = (el) ->
         if el.file and el.line
@@ -195,11 +195,20 @@ define ["jquery", "cs!./keybindings", "./caret"
         a = if el.local then """<a href="#{el.local}" data-line="#{el.line}">""" else ""
         ax = if a != "" then "</a>" else ""
         """<p class="trace-elem" style="margin-left: #{1+traceWidth/2}em; text-indent: -#{1+traceWidth/2}em">#{spaces}#{a}<span class="source">#{source}</span> <span class="method">#{method}</span>#{ax}</p>"""
+      errline = """
+        <span class="class">#{e.class}</span>:
+        <span class="message">#{e.message}</span>
+      """
+      if posInFile?
+        errline = """
+          <a href="#{posInFile.path}" data-line="#{posInFile.row}">
+            #{errline}
+          </a>
+        """
       node = $("""
         <div class="exception">
           <p class="message">
-            <span class="class">#{e.class}</span>:
-            <span class="message">#{e.message}</span>
+            #{errline}
           </p>
           #{(traceElem(el) for el in e["trace-elems"]).join("")}
         </div>
@@ -209,8 +218,8 @@ define ["jquery", "cs!./keybindings", "./caret"
         node.append(@exceptionNode(e.cause))
       node
 
-    replPrintException: (e) =>
-      @printNode(@exceptionNode(e))
+    replPrintException: (e, posInFile) =>
+      @printNode(@exceptionNode(e, posInFile))
 
     onReplFlushTimeout: =>
       @replFlushTimeout = null
@@ -252,14 +261,16 @@ define ["jquery", "cs!./keybindings", "./caret"
             error = i
             break
         if error
-          result = @replPrint("error", error.error)
+          annotation = null
           if error.line? and error.annotation?
-            @editor.getSession().setAnnotations([
+            annotation =
+              path: msg.path
               row: (error.errline or error.line) - 1
               column: null
               text: error.annotation
               type: "error"
-            ])
+            @editor.getSession().setAnnotations([annotation])
+          result = @replPrintException(error.error, annotation)
         else
           if msg.tag != "test"
             @replPrint("result", "#{msg.ns} compiled successfully.")

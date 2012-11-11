@@ -210,12 +210,12 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
     evalBuffer: (e) =>
       e?.preventDefault()
-      @socket.eval(@session.getValue(), "compile")
+      @socket.eval(@session.bufferName, @session.getValue(), "compile")
 
     runTests: (e) =>
       e?.preventDefault()
       form = @session.getValue() + "\n(clojure.test/run-tests)"
-      @socket.eval(form, "test")
+      @socket.eval(@session.bufferName, form, "test")
 
     selectFile: (e) =>
       e?.preventDefault()
