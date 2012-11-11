@@ -30,10 +30,9 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
         tokens = line.tokens
       else
         tokens = @$tokenizer.getLineTokens(line, state).tokens
-      if state != "start" then return [tokens, 0, 0, null]
       pos = 0
       parens = 0
-      indent = if tokens[0]?.type == "text" then getIndent(tokens[0].value) else 0
+      indent = if tokens[0]?.type in ["string", "text"] then getIndent(tokens[0].value) else 0
       lastcloseparen = null
       pindent = []
       infunc = null
@@ -81,9 +80,9 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
       line = doc.getLine(row)
       [tokens, oldindent, parens, lastcloseparen] = @_tokenise(line, state)
       if lastcloseparen != null
-        {column: indent} = doc.findMatchingBracket(
-          {row: row, column: lastcloseparen})
-        doc.replace(new Range(row+1, 0, row+1, oldindent), spaces(indent))
+        pos = doc.findMatchingBracket({row: row, column: lastcloseparen})
+        if pos
+          doc.replace(new Range(row+1, 0, row+1, oldindent), spaces(pos.column))
 
     tokeniseDocument: (doc, upto) ->
       if not upto then upto = doc.doc.getLength() - 1
