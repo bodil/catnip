@@ -340,11 +340,15 @@ define ["jquery", "cs!./keybindings", "./caret"
         @replPrint("error", "Save error: #{msg.fs.error}")
 
     onCljscMessage: (msg) =>
-      if msg.fs.success
-        @replPrint("result", "#{msg.tag} compiled successfully.")
+      error = null
+      for r in msg.fs.result
+        if not r.success
+          error = r.error
+      if not error
+        @replPrint("result", "#{msg.fs.path} compiled successfully.")
         @browser.reload()
       else
-        @replPrint("error", "cljsc: #{msg.fs.error}")
+        @replPrint("error", "cljsc: #{error}")
 
     onExceptionClick: (e) =>
       e.preventDefault()

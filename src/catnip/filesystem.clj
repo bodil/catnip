@@ -91,6 +91,6 @@
                  "save"
                  (save-file (:path msg) (:file msg))
                  "cljsc"
-                 (cljs/cljs-compile project-path)
+                 (cljs/cljs-compile project-path (:path msg))
                  {:error "Unrecognised command."})]
     (assoc result :command (:command msg))))

@@ -4,7 +4,8 @@
 
 (ns catnip.cljs
   (:require [clojure.java.io :as io]
-            [cljs.closure :as cljsc])
+            [cljs.closure :as cljsc]
+            [catnip.paths :as paths])
   (:use [clojure.test]))
 
 (with-test
@@ -31,12 +32,33 @@
         (first builds))))
   (is (= :ohai (first-build {:builds [:ohai]}))))
 
-(defn cljs-compile [project-path]
-  (when-let [build (first-build (load-cljsbuild project-path))]
-    (when-let [srcpath (:source-path build)]
-      (when-let [options (:compiler build)]
-        (try
-          (cljsc/build srcpath options)
-          {:success true :output ""}
-          (catch Throwable e
-            {:success false :error (.getMessage e)}))))))
+(with-test
+  (defn path-in-build? [path build]
+    (paths/inside? (io/file (:source-path build)) (io/file path)))
+  (is (true? (path-in-build? "src/foo.cljs"
+                             {:source-path "src"})))
+  (is (false? (path-in-build? "src/foo.cljs"
+                             {:source-path "test"}))))
+
+(with-test
+ (defn builds-for [cljsbuild path]
+   (filter (partial path-in-build? path) (:builds cljsbuild)))
+ (is (= [{:source-path "src"}
+         {:source-path "src/cljs"}]
+        (builds-for {:builds [{:source-path "src"}
+                              {:source-path "src/cljs"}
+                              {:source-path "test"}]}
+                    "src/cljs/wibble.cljs"))))
+
+(defn compile-build [build]
+  (when-let [srcpath (:source-path build)]
+    (when-let [options (:compiler build)]
+      (try
+        (cljsc/build srcpath options)
+        (assoc build :success true :output "")
+        (catch Throwable e
+          (assoc build :success false :error (.getMessage e)))))))
+
+(defn cljs-compile [project-path path]
+  {:result (map compile-build (builds-for (load-cljsbuild project-path) path))
+   :path path})
