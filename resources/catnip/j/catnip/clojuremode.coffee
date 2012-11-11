@@ -27,6 +27,7 @@ define ["ace/mode/text", "ace/mode/behaviour/cstyle", "ace/range",
       super
       @$tokenizer = new Tokenizer(new ClojureHighlightRules().getRules())
       @$behaviour = new cstyle.CstyleBehaviour()
+      @$behaviour.remove("string_dquote")
 
     toggleCommentLines: (state, doc, startRow, endRow) =>
       outdent = true
