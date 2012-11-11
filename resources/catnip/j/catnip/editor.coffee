@@ -53,6 +53,14 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         exec: => @tabOrComplete()
 
       @commands.addCommand
+        name: "indentBuffer"
+        bindKey: "Ctrl-Alt-I"
+        exec: (env, args, request) ->
+          mode = env.session.getMode()
+          if mode.autoIndentBuffer?
+            mode.autoIndentBuffer(env.session)
+
+      @commands.addCommand
         name: "saveBuffer"
         bindKey: "Ctrl-S"
         exec: => @saveBuffer()
@@ -140,8 +148,10 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
     tabOrComplete: =>
       if @lastWasInsert and @complete() then return
-      pos = @getCursorPosition()
-      @indent()
+      if @session.getMode().autoIndentCurrentRow?
+        @session.getMode().autoIndentCurrentRow(@session)
+      else
+        @indent()
 
     onSocketMessage: (e) =>
       msg = e.message
