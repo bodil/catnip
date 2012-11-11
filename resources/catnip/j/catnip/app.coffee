@@ -49,7 +49,7 @@ define ["jquery", "cs!./socket", "cs!./editor"
         if $(window.document.body).hasClass("presentation-mode")
           $(window.document.body).removeClass("presentation-mode")
           repl.focusEditor()
-        $(window.document.body).toggleClass("hide-browser")
+        browser.toggle()
         editor.resize()
       else if keybindings.matchBinding e, "C-p"
         togglePresentationMode(e)

@@ -7,7 +7,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
   EventEmitter = event_emitter.EventEmitter
 
   class Browser
-    constructor: (@frame, @locationBar, @refreshButton, @socket) ->
+    constructor: (@frame, @locationBar, @refreshButton) ->
       this[key] = EventEmitter[key] for own key of EventEmitter
 
       window.addEventListener("message", @onWindowMessage, false)
@@ -22,6 +22,12 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
 
       @frame[0].src = @url = window.CatnipProfile["default-browser-url"]
 
+    toggle: ->
+      $(window.document.body).toggleClass("hide-browser")
+      if not @isHidden() and @wantsReload then @reload()
+
+    isHidden: -> $(window.document.body).hasClass("hide-browser")
+
     syncLocationBar: (url) =>
       @url = url or @frame[0].src
       @locationBar.val(@url)
@@ -32,7 +38,11 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
       @frame[0].src = @url = url
 
     reload: =>
-      @frame[0].src = @url
+      if @isHidden()
+        @wantsReload = true
+      else
+        @wantsReload = false
+        @frame[0].src = @url
 
     onWindowMessage: (e) =>
       m = e.data.match(/^client-frame:(.*)/)
