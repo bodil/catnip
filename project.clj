@@ -7,11 +7,11 @@
             :url "http://www.mozilla.org/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.webbitserver/webbit "0.4.6"]
-                 [org.clojure/clojurescript "0.0-1450"]
-                 [clj-info "0.2.3"]
+                 [org.clojure/clojurescript "0.0-1535"]
+                 [clj-info "0.3.1"]
                  [enlive "1.0.1"]
-                 [clj-stacktrace "0.2.4"]
-                 [cheshire "4.0.2"]]
+                 [clj-stacktrace "0.2.5"]
+                 [cheshire "4.0.4"]]
   :cljsbuild {:builds
               [{:source-path "src"
                 :compiler
