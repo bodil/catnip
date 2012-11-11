@@ -15,6 +15,9 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
   getIndent = (line) ->
     match = line.match(/^(\s+)/)
     if match then match[1].length else 0
+  empty = (line) -> line.match(/^\s*$/)
+  isfunc = (token) ->
+    token.type == "support.function" and token.value in ["fn", "defn"]
 
   class ExtendedCljMode extends ClojureMode
     constructor: ->
@@ -22,18 +25,35 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
       @$behaviour = new cstyle.CstyleBehaviour()
 
     _tokenise: (line, state) =>
-      tokens = @$tokenizer.getLineTokens(line, state).tokens
+      if line.state?
+        state = line.state
+        tokens = line.tokens
+      else
+        tokens = @$tokenizer.getLineTokens(line, state).tokens
+      if state != "start" then return [tokens, 0, 0, null]
       pos = 0
       parens = 0
-      indent = 0
+      indent = if tokens[0]?.type == "text" then getIndent(tokens[0].value) else 0
       lastcloseparen = null
       pindent = []
+      infunc = null
+      sinceparen = null
+      indentingsince = null
       for token in tokens
         newpos = pos + token.value.length
-        if token.type not in unalign
-          indent = pos
+        if isfunc(token) and last.value == "("
+          infunc = pos
+        if token.type == "string" and token.value == "\""
+          null
+        else if token.type not in unalign
+          if sinceparen != null
+            if sinceparen < indentingsince
+              indent = pos
+            sinceparen++
         else if token.type == "keyword"
           if token.value in openparens
+            sinceparen = 0
+            indentingsince = if token.value == "(" then 2 else 1
             parens++
             pindent.push(pos)
           else if token.value in closeparens
@@ -41,7 +61,10 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
             if parens >= 0
               indent = pindent.pop()
             lastcloseparen = newpos
+        last = token if token.type != "text"
         pos = newpos
+      if parens > 0 and infunc != null
+        indent = infunc + 1
 
       [tokens, indent, parens, lastcloseparen]
 
@@ -62,17 +85,36 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
           {row: row, column: lastcloseparen})
         doc.replace(new Range(row+1, 0, row+1, oldindent), spaces(indent))
 
-    indentForRow: (doc, row) =>
-      if row == 0 then return 0
-      line = doc.getLine(row - 1)
-      [tokens, indent, parens, lastcloseparen] = @_tokenise(line, "start")
-      if lastcloseparen != null
+    tokeniseDocument: (doc, upto) ->
+      if not upto then upto = doc.doc.getLength() - 1
+      rows = []
+      state = "start"
+      for row in [0..upto]
+        line = doc.getLine(row)
+        tokens = @$tokenizer.getLineTokens(line, state)
+        state = tokens.state
+        rows[row] = tokens
+
+    indentForRow: (doc, tokenised, row) =>
+      prev = row - 1
+      while true
+        if prev < 0 then return 0
+        line = doc.getLine(prev)
+        if not empty(line) then break
+        prev--
+      [tokens, indent, parens, lastcloseparen] = @_tokenise(tokenised[prev])
+      if parens < 0 and lastcloseparen != null
+<<<<<<< HEAD
         {column: indent} = doc.findMatchingBracket(
           {row: row - 1, column: lastcloseparen})
+=======
+        pos = doc.findMatchingBracket({row: prev, column: lastcloseparen})
+        if pos then indent = pos.column
+>>>>>>> ed2700f... ohai
       indent
 
-    autoIndentRow: (doc, row) =>
-      indent = @indentForRow(doc, row)
+    autoIndentRow: (doc, tokenised, row) =>
+      indent = @indentForRow(doc, tokenised, row)
       line = doc.getLine(row)
       current = getIndent(line)
       doc.replace(new Range(row, 0, row, current), spaces(indent))
@@ -80,10 +122,19 @@ define ["ace/mode/clojure", "ace/mode/behaviour/cstyle", "ace/range"],
 
     autoIndentCurrentRow: (doc) =>
       pos = doc.selection.getCursor()
+<<<<<<< HEAD
       [current, indent] = @autoIndentRow(doc, pos.row)
       if pos.column < current
+=======
+      tokenised = @tokeniseDocument(doc, range.end.row)
+      for row in [range.start.row..range.end.row]
+        i = @autoIndentRow(doc, tokenised, row)
+        if row == pos.row then [current, indent] = i
+      if doc.selection.isEmpty() and pos.column < current
+>>>>>>> ed2700f... ohai
         doc.selection.moveCursorTo(pos.row, indent)
 
     autoIndentBuffer: (doc) =>
+      tokenised = @tokeniseDocument(doc)
       for row in [0...doc.doc.getLength()]
-        @autoIndentRow(doc, row)
+        @autoIndentRow(doc, tokenised, row)
