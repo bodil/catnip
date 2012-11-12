@@ -14,8 +14,8 @@ novice Clojure user.
 
 ### Windows Installer
 
-There is a (Windows
-installer)[https://github.com/bodil/leiningen-for-dummies] available
+There is a [Windows
+installer](https://github.com/bodil/leiningen-for-dummies) available
 that will attempt to automatically install a complete Catnip
 environment on your system. This method is unsupported, but may work
 if you're feeling lazy. We highly recommend you try the manual
