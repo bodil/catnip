@@ -8,7 +8,7 @@ Catnip's primary goals are to facilitate the teaching of Clojure, and
 to provide a simple yet powerful development environment for the
 novice Clojure user.
 
-![Screenshot](http://raw.github.com/bodil/catnip/master/catnip-screenshot-light.png)
+![Screenshot](https://raw.github.com/bodil/catnip/master/catnip-screenshot-light.png)
 
 ## Installation
 
