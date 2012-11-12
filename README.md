@@ -4,27 +4,35 @@ Catnip is a Leiningen plugin providing a fully functional text editor
 and REPL environment geared towards web development with Clojure and
 ClojureScript.
 
-![Screenshot](https://raw.github.com/bodil/catnip/master/catnip-screenshot.png)
+Catnip's primary goals are to facilitate the teaching of Clojure, and
+to provide a simple yet powerful development environment for the
+novice Clojure user.
 
-## Usage
+![Screenshot](http://raw.github.com/bodil/catnip/master/catnip-screenshot-light.png)
 
-To install using Leiningen, simply add the plugin to your
-~/.lein/profiles.clj file:
+## Installation
+
+### Windows Installer
+
+There is a (Windows
+installer)[https://github.com/bodil/leiningen-for-dummies] available
+that will attempt to automatically install a complete Catnip
+environment on your system. This method is unsupported, but may work
+if you're feeling lazy. We highly recommend you try the manual
+installation procedure instead.
+
+### Manual Installation
+
+First, if you haven't already done so, install [Leiningen](https://github.com/technomancy/leiningen), the Clojure build system.
+
+To install Catnip, add the plugin to your
+[Leiningen user profile](https://github.com/technomancy/leiningen/blob/master/doc/PROFILES.md); if you don't already have one, make one by creating the file `~/.lein/profiles.clj` with the following text:
 
 ```clojure
-    {:user {:plugins [...
-                      [lein-catnip "0.4.1"]]}}
+    {:user {:plugins [[lein-catnip "0.4.1"]]}}
 ```
 
-You can now launch it from within your own Leiningen projects like
-this:
-
-```bash
-    lein edit
-```
-
-This will launch the Catnip web server and open it in your browser.
-You'll be able to start writing code right away.
+## Usage
 
 ### Quickstart
 
@@ -37,17 +45,30 @@ need to get started with a fresh Clojure project:
     lein edit
 ```
 
+This will launch the Catnip web server and open it in your browser.
+You'll be able to start writing code right away.
+
+### General Usage
+
+You can launch Catnip from within your own Leiningen projects like
+this:
+
+```bash
+    lein edit
+```
+
 ## ClojureScript
 
 Catnip can compile ClojureScript files for you automatically, but you
 need to add a
 [lein-cljsbuild](https://github.com/emezeske/lein-cljsbuild)
 configuration to your `project.clj` file to make it work. Catnip will
-figure out how to compile the ClojureScript by looking at the first
-build in your `:cljsbuild` section. It takes the `:source-path` and
-compiles every `.cljs` file in that path using the `:compiler` flags
-specified. It ignores anything else in the build definition, so the
-resulting code may differ from what lein-cljsbuild would produce.
+automatically recompile needed builds when a file changes using the
+following mechanism: for every build whose `:source-path` contains the
+file being modified, it will run the CLJS compiler using that build's
+`:compiler` flags. It ignores anything else in the build definition,
+so the resulting code may differ from what lein-cljsbuild would
+produce.
 
 Here's an example `:cljsbuild` section for your `project.clj`:
 
@@ -67,8 +88,9 @@ Clojure and ClojureScript code, like me) and compiles them into
 file in Catnip, it will use this configuration to recompile the
 `main.js` file and reload the current page in the browser frame.
 
-Note that Catnip will only look at the first build configuration; if
-you have more than one, the rest will be ignored.
+Please keep in mind that the level of optimisation will have a
+considerable impact on compilation time, so you may wish to limit
+optimisation to a bare minimum while developing.
 
 ## Browser Notes
 
