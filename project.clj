@@ -7,7 +7,7 @@
             :url "http://www.mozilla.org/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.webbitserver/webbit "0.4.6"]
-                 [org.clojure/clojurescript "0.0-1535"]
+                 [org.clojure/clojurescript "0.0-1552"]
                  [clj-info "0.3.1"]
                  [enlive "1.0.1"]
                  [clj-stacktrace "0.2.5"]
