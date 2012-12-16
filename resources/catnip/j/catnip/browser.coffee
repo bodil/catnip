@@ -22,6 +22,8 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
 
       @frame[0].src = @url = window.CatnipProfile["default-browser-url"]
 
+      @codeCallbacks = []
+
     toggle: ->
       $(window.document.body).toggleClass("hide-browser")
       if not @isHidden() and @wantsReload then @reload()
@@ -53,6 +55,9 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
           window.repl.replPrint("out", msg)
         else if args.url?
           @syncLocationBar(args.url)
+        else if args.source?
+          callback(args.source) for callback in @codeCallbacks
+          @codeCallbacks = []
 
     nextSlide: (e) =>
       e?.preventDefault()
@@ -81,3 +86,7 @@ define ["jquery", "ace/lib/event_emitter"], ($, event_emitter) ->
     escape: (e) =>
       e?.preventDefault()
       @frame[0].contentWindow.postMessage("escape", "*")
+
+    getSource: (callback) =>
+      @codeCallbacks.push(callback)
+      @frame[0].contentWindow.postMessage("getSource", "*")

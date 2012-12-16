@@ -110,6 +110,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         bindKey: "Alt-E"
         exec: => @sexpToRepl()
 
+      @commands.addCommand
+        name: "codeFromSlide"
+        bindKey: "Alt-P"
+        exec: => @codeFromSlide()
+
     updateTheme: =>
       if $("body").hasClass("theme-light")
         @setTheme("ace/theme/chrome")
@@ -362,3 +367,6 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
     sexpToRepl: =>
       if sel = @sexpAtPoint()
         @_emit "sexp-to-repl", sexp: sel
+
+    codeFromSlide: =>
+      window.browser.getSource (source) => @insert(source)
