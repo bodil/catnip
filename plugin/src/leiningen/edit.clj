@@ -22,8 +22,13 @@
   (with-open [socket (ServerSocket. 0)]
     (.getLocalPort socket)))
 
+(defn- select-port [port-str]
+  (let [port (Integer. port-str)]
+    (if (pos? port) port
+        (free-port))))
+
 (defn edit
   "Launch a Catnip server."
-  [project & args]
-  (server-in-project (with-catnip-dep project) (free-port))
+  [project & [port]]
+  (server-in-project (with-catnip-dep project) (select-port port))
   (.await (CountDownLatch. 1)))
