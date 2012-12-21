@@ -92,6 +92,18 @@ Please keep in mind that the level of optimisation will have a
 considerable impact on compilation time, so you may wish to limit
 optimisation to a bare minimum while developing.
 
+## Serving static files
+
+You can configure Catnip to serve static files (such as slide decks or
+index files for ClojureScript projects) from your project directory.
+To configure this facility, add something like this to your project's
+`project.clj` file:
+
+```clojure
+    :catnip {:mount [["/mount-point" "path-to-local-directory"]
+                     ["/another-mount-point" "another-local-dir"]]}
+```
+
 ## Browser Notes
 
 Catnip is developed primarily for Google Chrome, and is tested

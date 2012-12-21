@@ -9,8 +9,10 @@
             [catnip.profile :as profile]
             [catnip.repl :as repl]
             [catnip.complete :as complete]
+            [catnip.project-clj :as project-clj]
             [clojure.repl])
-  (:use [clojure.test])
+  (:use [clojure.test]
+        [catnip.webbit :only [relative-file-handler]])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler
             HttpHandler]
            [org.webbitserver.handler EmbeddedResourceHandler]
@@ -80,7 +82,8 @@
   (let [server (WebServers/createWebServer
                 (Executors/newSingleThreadExecutor)
                 (InetSocketAddress. "127.0.0.1" port)
-                (URI/create (str "http://localhost:" port)))]
+                (URI/create (str "http://localhost:" port)))
+        project (project-clj/read-project-clj)]
     (doto server
       (.add "/repl"
             (proxy [WebSocketHandler] []
@@ -91,8 +94,10 @@
             (proxy [HttpHandler] []
               (handleHttpRequest [req res ctl]
                 (send-index res))))
-      (.add (EmbeddedResourceHandler. "catnip"))
-      (.start))
+      (.add (EmbeddedResourceHandler. "catnip")))
+    (doseq [[mount-point local-path] (project-clj/catnip-key :mount project)]
+      (.add server (relative-file-handler mount-point local-path)))
+    (.start server)
     (def ^:dynamic *server* server)
     (.getUri server)))
 
