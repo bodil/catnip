@@ -1,5 +1,7 @@
 # Catnip
 
+![Catnip](http://images.cheezburger.com/completestore/2011/5/4/8f08152b-aef2-48ca-964d-06cc5802f2c8.jpg)
+
 Catnip is a Leiningen plugin providing a fully functional text editor
 and REPL environment geared towards web development with Clojure and
 ClojureScript.
