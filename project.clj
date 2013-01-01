@@ -1,5 +1,5 @@
 (defproject catnip "0.6.0-SNAPSHOT"
-  :plugins [[lein-cljsbuild "0.2.5"]
+  :plugins [[lein-cljsbuild "0.2.10"]
             [lein-exec "0.2.1"]]
   :description "The irresistible Clojure IDE-in-a-plugin"
   :url "https://github.com/bodil/catnip"
@@ -11,7 +11,7 @@
                  [clj-info "0.3.1"]
                  [enlive "1.0.1"]
                  [clj-stacktrace "0.2.5"]
-                 [cheshire "4.0.4"]]
+                 [cheshire "5.0.1"]]
   :cljsbuild {:builds
               [{:source-path "src"
                 :compiler
