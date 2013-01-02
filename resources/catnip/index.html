@@ -17,18 +17,30 @@
     <script type="text/javascript">
       var require = {
         baseUrl: "/j",
-        priority: [
-          "/j/less.js",
-          "/j/jquery/jquery.js",
-          "/j/jquery/caret.js",
-          "/j/jquery/scrollintoview.js",
-          "/j/bootstrap/dropdown.js",
-        ],
+        paths: {
+          "cljs": "/cljs"
+        },
+        shim: {
+          "cljs/main": {
+            deps: [
+              "ace/editor",
+              "ace/virtual_renderer",
+              "ace/multi_select",
+              "ace/undomanager",
+              "ace/mode/clojure"
+            ]
+          }
+        },
         deps: [
-          "cs!catnip/app"
+          "cljs/main"
         ]
       };
     </script>
+    <script type="text/javascript" src="/j/less.js"></script>
+    <script type="text/javascript" src="/j/jquery/jquery.js"></script>
+    <script type="text/javascript" src="/j/jquery/caret.js"></script>
+    <script type="text/javascript" src="/j/jquery/scrollintoview.js"></script>
+    <script type="text/javascript" src="/j/bootstrap/dropdown.js"></script>
     <script type="text/javascript" src="/j/require.js"></script>
   </head>
   <body class="loading">

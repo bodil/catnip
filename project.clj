@@ -11,9 +11,13 @@
                  [clj-info "0.3.1"]
                  [enlive "1.0.1"]
                  [clj-stacktrace "0.2.5"]
-                 [cheshire "5.0.1"]]
+                 [cheshire "5.0.1"]
+                 ; -- Cljs deps --
+                 [jayq "2.0.0"]
+                 [org.bodil/pylon "0.1.0"]
+                 [org.bodil/redlobster "0.2.0"]]
   :cljsbuild {:builds
-              [{:source-path "src"
+              [{:source-path "cljs"
                 :compiler
                 {:output-to "resources/catnip/cljs/main.js"
                  :output-dir "resources/catnip/cljs"
