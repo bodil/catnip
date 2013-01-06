@@ -3,13 +3,13 @@
 ;; You can obtain one at http://mozilla.org/MPL/2.0/.
 
 (ns catnip.server
-  (:require [cheshire.custom :as json]
-            [net.cgrand.enlive-html :as html]
+  (:require [net.cgrand.enlive-html :as html]
             [catnip.filesystem :as fs]
             [catnip.profile :as profile]
             [catnip.repl :as repl]
             [catnip.complete :as complete]
             [catnip.project-clj :as project-clj]
+            [catnip.edn :as edn]
             [clojure.repl])
   (:use [clojure.test]
         [catnip.webbit :only [relative-file-handler]])
@@ -18,12 +18,6 @@
            [org.webbitserver.handler EmbeddedResourceHandler]
            [java.net InetSocketAddress URI]
            [java.util.concurrent Executors]))
-
-(json/add-encoder java.lang.Class
-                  (fn [c out] (.writeString out (.getName c))))
-
-(json/add-encoder java.lang.Object
-                  (fn [c out] (.writeString out (str c))))
 
 (defn send-index [r]
   (let [nodes (html/html-resource "catnip/index.html")
@@ -40,8 +34,8 @@
 
 (defn on-disconnect [socket] )
 
-(defn on-message [socket json]
-  (let [msg (json/parse-string json true)
+(defn on-message [socket msg-str]
+  (let [msg (read-string msg-str)
         results
         (try
           (cond
@@ -62,20 +56,20 @@
             (:profile msg)
             {:profile (profile/save-profile (:profile msg))}
 
-            :else {:error "Bad message" :msg json})
+            :else {:error "Bad message" :msg msg-str})
           (catch Exception e
             {:error (repl/pprint-exception e)}))]
     (try
       (.send socket
-             (json/generate-string
+             (edn/to-edn
               (assoc results
-                :ns (str (.data socket "ns"))
+                :ns (.data socket "ns")
                 :tag (:tag msg))))
       (catch Exception e
         (let [message (repl/pprint-exception e)]
-          (.send socket (json/generate-string
-                        {:error "Failed to serialise response."
-                         :exception message})))))))
+          (.send socket (str
+                         {:error "Failed to serialise response."
+                          :exception message})))))))
 
 (defn start [port]
   (complete/init)

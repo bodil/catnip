@@ -14,11 +14,7 @@
 
 (defn- broadcast-message [e]
   (.debug js/console "incoming msg:" (.-originalEvent.data e))
-  (let [event
-        (-> (.-originalEvent.data e)
-            (JSON/parse)
-            (js->clj :keywordize-keys true))
-        ]
+  (let [event (cljs.reader/read-string (.-originalEvent.data e))]
     (e/emit @emitter "message" event)))
 
 (defn connect []
@@ -29,9 +25,7 @@
 
 (defn- send-message
   [message tag]
-  (let [message (-> (assoc message :tag tag)
-                    (clj->js)
-                    (JSON/stringify))]
+  (let [message (str (assoc message :tag tag))]
     (.debug js/console "send:" message)
     (ws/send @socket message)))
 
