@@ -41,41 +41,42 @@
 (defn on-disconnect [socket] )
 
 (defn on-message [socket json]
-  (let [msg (json/parse-string json true)
-        results
-        (try
-          (cond
-            (:eval msg)
-            (repl/eval-string socket (:path msg) (:eval msg))
+  (future
+    (let [msg (json/parse-string json true)
+          results
+          (try
+            (cond
+             (:eval msg)
+             (repl/eval-string socket (:path msg) (:eval msg))
 
-            (:complete msg)
-            {:complete (repl/complete-string
-                        socket (:complete msg) (:ns msg))}
+             (:complete msg)
+             {:complete (repl/complete-string
+                         socket (:complete msg) (:ns msg))}
 
-            (:doc msg)
-            {:doc (repl/document-symbol socket (:doc msg) (:ns msg))
-             :symbol (:doc msg)}
+             (:doc msg)
+             {:doc (repl/document-symbol socket (:doc msg) (:ns msg))
+              :symbol (:doc msg)}
 
-            (:fs msg)
-            {:fs (fs/fs-command (:fs msg))}
+             (:fs msg)
+             {:fs (fs/fs-command (:fs msg))}
 
-            (:profile msg)
-            {:profile (profile/save-profile (:profile msg))}
+             (:profile msg)
+             {:profile (profile/save-profile (:profile msg))}
 
-            :else {:error "Bad message" :msg json})
-          (catch Exception e
-            {:error (repl/pprint-exception e)}))]
-    (try
-      (.send socket
-             (json/generate-string
-              (assoc results
-                :ns (str (.data socket "ns"))
-                :tag (:tag msg))))
-      (catch Exception e
-        (let [message (repl/pprint-exception e)]
-          (.send socket (json/generate-string
-                        {:error "Failed to serialise response."
-                         :exception message})))))))
+             :else {:error "Bad message" :msg json})
+            (catch Exception e
+              {:error (repl/pprint-exception e)}))]
+      (try
+        (.send socket
+               (json/generate-string
+                (assoc results
+                  :ns (str (.data socket "ns"))
+                  :tag (:tag msg))))
+        (catch Exception e
+          (let [message (repl/pprint-exception e)]
+            (.send socket (json/generate-string
+                           {:error "Failed to serialise response."
+                            :exception message}))))))))
 
 (defn start [port]
   (complete/init)
