@@ -114,6 +114,11 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
         name: "codeFromSlide"
         bindKey: "Alt-P"
         exec: => @codeFromSlide()
+        
+      @commands.addCommand
+        name: "selectForm"
+        bindKey: "Ctrl-Alt-Space"
+        exec: => @selectForm()
 
     updateTheme: =>
       if $("body").hasClass("theme-light")
@@ -319,6 +324,10 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
       { row, column } = @getCursorPosition()
       @session.getLine(row)[column - 1]
 
+    getCharAtPoint: =>
+      { row, column } = @getCursorPosition()
+      @session.getLine(row)[column]
+
     documentSymbol: =>
       @socket.doc(@guessNamespace(), @getSymbolAtPoint(), "editor")
 
@@ -370,3 +379,18 @@ define ["jquery", "ace/editor", "ace/virtual_renderer", "ace/edit_session"
 
     codeFromSlide: =>
       window.browser.getSource (source) => @insert(source)
+
+    selectForm: =>
+      if @getCharBeforePoint() in ")}]\"" or @getCharAtPoint() in "({[\""
+        pos = @getCursorPosition()
+        @jumpToMatching(true)
+      else
+        pos = @getCursorPosition()
+        line = @session.getLine(pos.row)
+        before = line[... pos.column].match(keybindings.completeRe)
+        after = line[pos.column ..].match(/^[^\s()\[\]{},\'`~\#@]*/)
+        newpos = pos
+        newpos.column = pos.column - before[0].length
+        @moveCursorToPosition(newpos)
+        @selection.selectTo(newpos.row, newpos.column+after[0].length+before[0].length)
+
