@@ -346,7 +346,7 @@ define ["jquery", "cs!./keybindings", "./caret"
           error = r.error
       if not error
         @replPrint("result", "#{msg.fs.path} compiled successfully.")
-        window.setTimeout((=> @browser.reload()), 1000)
+        window.setTimeout((=> @browser.reload()), 2000)
       else
         @replPrint("error", "cljsc: #{error}")
 
