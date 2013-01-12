@@ -26,10 +26,6 @@
              (.getQuery uri)
              (.getFragment uri))))))
 
-; Examples:
-#_(transform-url "/files/default.htm" #"/files(/.*)" "$1")
-#_(transform-url "http://localhost:11/files/default.htm" #"/files(/.*)" "$1")
-
 (defn- transform-req [req from to]
   (let [uri (.uri req)
         new-uri (transform-url uri from to)

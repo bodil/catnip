@@ -23,9 +23,10 @@
     (.getLocalPort socket)))
 
 (defn- select-port [port-str]
-  (let [port (Integer. port-str)]
-    (if (pos? port) port
-        (free-port))))
+  (if (nil? port-str) (free-port)
+      (let [port (Integer. port-str)]
+        (if (pos? port) port
+            (free-port)))))
 
 (defn edit
   "Launch a Catnip server."
