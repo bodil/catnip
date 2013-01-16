@@ -31,7 +31,7 @@ To install Catnip, add the plugin to your
 [Leiningen user profile](https://github.com/technomancy/leiningen/blob/master/doc/PROFILES.md); if you don't already have one, make one by creating the file `~/.lein/profiles.clj` with the following text:
 
 ```clojure
-    {:user {:plugins [[lein-catnip "0.5.0"]]}}
+    {:user {:plugins [[lein-catnip "0.5.1"]]}}
 ```
 
 ## Usage
