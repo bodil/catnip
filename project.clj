@@ -1,4 +1,4 @@
-(defproject catnip "0.5.1"
+(defproject catnip "0.6.0-SNAPSHOT"
   :plugins [[lein-cljsbuild "0.2.10"]
             [lein-exec "0.2.1"]]
   :description "The irresistible Clojure IDE-in-a-plugin"
