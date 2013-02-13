@@ -75,147 +75,143 @@
 
 (defclass FileSelector
   (defn constructor [file-set buffer-history filter]
-    (doto this
-      (aset "promise" (p/promise))
-      (aset "fileSet" file-set)
-      (aset "files" (order-by-history file-set buffer-history))
-      (aset "bufferHistory" buffer-history)
-      (aset "activeFilter" "")
-      (aset "box" (install-box))
-      (aset "viewport" (j/children (.-box this) "div"))
-      (aset "list" (j/find (.-box this) "ul"))
-      (aset "input" (install-input))
-      (.populateList)
-      (aset "pageSize" (/ (j/height (.-box this))
-                          (j/height (j/children (.-list this)
-                                                "li:first-child")))))
-    (e/on js/window :resize (.-onResize this))
-    (doto (.-input this)
-      (e/on :keydown (.-onKeyDown this))
-      (e/on :keyup (.-onFilterChange this))
-      (e/on :blur (.-close this))
+    (set! @.promise (p/promise))
+    (set! @.fileSet file-set)
+    (set! @.files (order-by-history file-set buffer-history))
+    (set! @.bufferHistory buffer-history)
+    (set! @.activeFilter "")
+    (set! @.box (install-box))
+    (set! @.viewport (j/children (.-box this) "div"))
+    (set! @.list (j/find (.-box this) "ul"))
+    (set! @.input (install-input))
+    (@.populateList)
+    (set! @.pageSize (/ (j/height @.box)
+                        (j/height (j/children @.list "li:first-child"))))
+    (e/on js/window :resize @.onResize)
+    (doto @.input
+      (e/on :keydown @.onKeyDown)
+      (e/on :keyup @.onFilterChange)
+      (e/on :blur @.close)
       (.focus))
-    (j/add-class (.-box this) "fade-in")
-    (.activate this (if (> (count buffer-history) 1) 1 0) 200)
+    (j/add-class @.box "fade-in")
+    (@.activate (if (> (count buffer-history) 1) 1 0) 200)
 
-    (aset this "keymap"
-          {"up" (.-up this)
-           "down" (.-down this)
-           "pageup" (.-pageUp this)
-           "pagedown" (.-pageDown this)
-           "home" (.-top this)
-           "end" (.-bottom this)
+    (set! @.keymap
+          {"up" @.up
+           "down" @.down
+           "pageup" @.pageUp
+           "pagedown" @.pageDown
+           "home" @.top
+           "end" @.bottom
            "left" :swallow
            "right" :swallow
-           "return" (.-select this)
-           "tab" (.-select this)
-           "esc" (.-abort this)
-           "C-g" (.-abort this)
+           "return" @.select
+           "tab" @.select
+           "esc" @.abort
+           "C-g" @.abort
            "all" #(.log js/console "plonk" (kb/event-str %))}))
 
   (defn onResize [event]
-    (.scrollTo this (.-activeNode this)))
+    (@.scrollTo @.activeNode))
 
   (defn onFilterChange [event]
-    (let [val (j/val (.-input this))]
-      (when (not= val (.-activeFilter this))
-        (.applyFilter this val))))
+    (let [val (j/val @.input)]
+      (when (not= val @.activeFilter)
+        (@.applyFilter val))))
 
   (defn onKeyDown [event]
-    (kb/delegate event (.-keymap this)))
+    (kb/delegate event @.keymap))
 
   (defn up [e]
     (j/prevent e)
-    (.activate this (if (zero? (.-active this))
-                      (dec (count (.-files this)))
-                      (dec (.-active this)))))
+    (@.activate (if (zero? @.active)
+                  (dec (count @.files))
+                  (dec @.active))))
 
   (defn down [e]
     (j/prevent e)
-    (.activate this (if (= (.-active this) (dec (count (.-files this))))
+    (@.activate (if (= @.active (dec (count @.files)))
                       0
-                      (inc (.-active this)))))
+                      (inc @.active))))
 
   (defn pageUp [e]
     (j/prevent e)
-    (.activate this (max (- (.-active this) (.-pageSize this)) 0)))
+    (@.activate (max (- @.active @.pageSize) 0)))
 
   (defn pageDown [e]
     (j/prevent e)
-    (.activate this (min (+ (.-active this) (.-pageSize this))
-                         (dec (count (.-files this))))))
+    (@.activate (min (+ @.active @.pageSize)
+                     (dec (count @.files)))))
 
   (defn top [e]
     (j/prevent e)
-    (.activate this 0))
+    (@.activate 0))
 
   (defn bottom [e]
     (j/prevent e)
-    (.activate this (dec (count (.-files this)))))
+    (@.activate (dec (count @.files))))
 
   (defn select [e]
     (j/prevent e)
-    (let [active (get (.-files this) (.-active this))]
-      (if (and active (pos? (count (.-files this))))
-        (p/realise (.-promise this) active)
-        (p/realise-error (.-promise this) nil)))
-    (.close this))
+    (let [active (get @.files @.active)]
+      (if (and active (pos? (count @.files)))
+        (p/realise @.promise active)
+        (p/realise-error @.promise nil)))
+    (@.close))
 
   (defn abort [e]
     (j/prevent e)
-    (p/realise-error (.-promise this) nil)
-    (.close this))
+    (p/realise-error @.promise nil)
+    (@.close))
 
   (defn close [e]
     (when e (j/prevent e))
-    (j/fade-out (.-box this)
+    (j/fade-out @.box
      200 (fn []
-           (j/remove (.-box this))
-           (j/remove (.-input this))
-           (e/remove-listener js/window :resize (.-onResize this)))))
+           (j/remove @.box)
+           (j/remove @.input)
+           (e/remove-listener js/window :resize @.onResize))))
 
   (defn applyFilter [f]
-    (let [file-set (.-fileSet this)
-          last-active (get (.-files this) (.-active this))]
-      (doto this
-        (aset "activeFilter" f)
-        (aset "files"
-              (order-by-history
-               (if f (filter (partial filter-match f) file-set) file-set)
-               (.-bufferHistory this))))
-      (.populateList this)
-      (.activate this (if f 0 (max 0 (.indexOf (.-files this) last-active))))))
+    (let [file-set @.fileSet
+          last-active (get @.files @.active)]
+      (set! @.activeFilter f)
+      (set! @.files (order-by-history
+                     (if f (filter (partial filter-match f) file-set) file-set)
+                     @.bufferHistory))
+      (@.populateList)
+      (@.activate (if f 0 (max 0 (.indexOf @.files last-active))))))
 
   (defn populateList []
     (replace!
-     (.-list this)
-     (if (zero? (count (.-files this)))
+     @.list
+     (if (zero? (count @.files))
        [:li "No files match filter "
-        [:span.filter (.-filter this)]]
-       (map (partial highlighted-node (.-filter this)) (.-files this))))
-    (aset this "nodes" (j/children (.-list this) "li")))
+        [:span.filter @.filter]]
+       (map (partial highlighted-node @.filter) @.files)))
+    (set! @.nodes (j/children @.list "li")))
 
   (defn activate [index & [speed]]
     (let [speed (or speed 50)
-          node (get (.-nodes this) index)
-          prev (.-activeNode this)]
+          node (get @.nodes index)
+          prev @.activeNode]
       (when prev (j/remove-class prev "active"))
-      (aset this "active" index)
-      (aset this "activeNode" node)
+      (set! @.active index)
+      (set! @.activeNode node)
       (j/add-class node "active")
-      (when (not (.-repositionTimeout this))
-        (.onRepositionTimeout this speed)
-        (aset this "repositionTimeout"
-              (js/setTimeout (.-onRepositionTimeout this) (* speed 2))))))
+      (when (not @.repositionTimeout)
+        (@.onRepositionTimeout speed)
+        (set! @.repositionTimeout
+              (js/setTimeout @.onRepositionTimeout (* speed 2))))))
 
   (defn onRepositionTimeout [speed]
-    (aset this "repositionTimeout" nil)
-    (.scrollTo this (.-activeNode this) speed))
+    (set! @.repositionTimeout nil)
+    (.scrollTo this @.activeNode speed))
 
   (defn scrollTo [node speed]
-    (let [vp (.-viewport this)
+    (let [vp @.viewport
           pos (+ (:top (j/position node)) (/ (j/height node) 2))
-          vp-offset (/ (j/height (.-box this)) 2)
+          vp-offset (/ (j/height @.box) 2)
           new-pos (+ (j/scroll-top vp) (- pos vp-offset))]
       (if speed
         (j/anim vp {:scrollTop new-pos} speed)
@@ -223,59 +219,3 @@
 
 (defn file-selector [file-set buffer-history filter]
   (.-promise (FileSelector. file-set buffer-history filter)))
-
-
-
-;; (defn- build-selector [file-set buffer-history filter]
-;;   {:box (install-selector)
-;;    :input (install-input)
-;;    :files file-set
-;;    :buffer-history buffer-history
-;;    :filter filter})
-
-;; (defn- page-size [selector]
-;;   (Math/round
-;;    (/ (j/height (:box @selector))
-;;       (j/height (j/find (:box @selector) "li:first-child")))))
-
-;; (defn- node-at [selector index]
-;;   (get (:nodes @selector) index))
-
-;; (defn- activate [selector index & [speed]]
-;;   (let [speed (or speed 50)]
-;;     (j/remove-class (:active-node @selector) "active")
-;;     (let [node (node-at selector index)]
-;;       (aset! selector
-;;              :active index
-;;              :active-node node)
-;;       (j/add-class node "active")
-;;       (when (not (:reposition-timeout @selector))
-;;         (scroll-to selector speed)
-;;         (aset! )))))
-
-;; (defn file-selector [file-set buffer-history filter]
-;;   (promise
-;;    (let [selector (atom (build-selector file-set buffer-history filter))]
-
-;;      (defon selector close [event]
-;;        (j/prevent event)
-;;        (j/fade-out (:box @selector) 200
-;;                    (fn []
-;;                      (j/remove (:box @selector))
-;;                      (j/remove (:input @selector))
-;;                      (e/remove-listener js/window :resize
-;;                                         (:on-resize @selector))
-;;                      (:complete @selector))))
-
-;;      (defon selector on-resize [event]
-;;        (.log js/console "ohai screen resized"))
-
-;;      (e/on js/window :resize (:on-resize @selector))
-;;      (doto (:input @selector)
-;;        ;; (e/on :blur (:close @selector))
-;;        (.focus))
-
-;;      (populate-list selector)
-;;      (aset! selector :page-size (page-size selector))
-
-;;      (j/add-class (:box @selector) "fade-in"))))
