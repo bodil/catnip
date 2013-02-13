@@ -58,7 +58,7 @@
 (def ^:private filter-cache
   (memoize
    (fn [f]
-     (js/RegExp. (string/join ".*" (string/split f #"")) "i"))))
+     (js/RegExp. (string/join ".*" (string/split f #"(?:)")) "i"))))
 
 (defn- filter-match [f v]
   (let [re (filter-cache f)]
