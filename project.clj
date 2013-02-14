@@ -14,7 +14,7 @@
                  [cheshire "5.0.1"]
                  ; -- Cljs deps --
                  [jayq "2.0.0"]
-                 [hiccups "0.1.1"]
+                 [prismatic/dommy "0.0.2"]
                  [org.bodil/pylon "0.3.0"]
                  [org.bodil/redlobster "0.2.0"]]
   :hooks [leiningen.cljsbuild]

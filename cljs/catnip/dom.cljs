@@ -1,8 +1,7 @@
 (ns catnip.dom
-  (:require-macros [hiccups.core :as h])
   (:require [jayq.core :as j :refer [$]]
             [redlobster.events :as e]
-            [hiccups.runtime]))
+            [dommy.template :as t]))
 
 (extend-type js/Element
   e/IEventEmitter
@@ -44,7 +43,7 @@
     (.triggerHandler this (e/unpack-event event) (into-array args))))
 
 (defn html [hiccup]
-  ($ (h/html hiccup)))
+  ($ (t/node hiccup)))
 
 (defn append! [$el hiccup]
   (let [new-el (html hiccup)]
@@ -52,4 +51,6 @@
     new-el))
 
 (defn replace! [$el hiccup]
-  (j/inner $el (h/html hiccup)))
+  (let [$new ($ (html hiccup))]
+    (.replaceWith $el $new)
+    $new))

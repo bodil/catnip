@@ -1,7 +1,8 @@
 (ns catnip.fileselector
   (:use-macros [catnip.requirejs :only [require]]
                [redlobster.macros :only [promise]]
-               [pylon.macros :only [defclass]])
+               [pylon.macros :only [defclass]]
+               [dommy.template-compile :only [deftemplate]])
   (:require [jayq.core :as j :refer [$]]
             [redlobster.events :as e]
             [redlobster.promise :as p]
@@ -76,21 +77,21 @@
 (defclass FileSelector
   (defn constructor [file-set buffer-history filter]
     (set! @.promise (p/promise))
-    (set! @.fileSet file-set)
+    (set! @.file-set file-set)
     (set! @.files (order-by-history file-set buffer-history))
-    (set! @.bufferHistory buffer-history)
-    (set! @.activeFilter "")
+    (set! @.buffer-history buffer-history)
+    (set! @.active-filter "")
     (set! @.box (install-box))
-    (set! @.viewport (j/children (.-box this) "div"))
-    (set! @.list (j/find (.-box this) "ul"))
+    (set! @.viewport (j/children @.box "div"))
+    (set! @.list (j/find @.box "ul"))
     (set! @.input (install-input))
-    (@.populateList)
-    (set! @.pageSize (/ (j/height @.box)
+    (@.populate-list)
+    (set! @.page-size (/ (j/height @.box)
                         (j/height (j/children @.list "li:first-child"))))
-    (e/on js/window :resize @.onResize)
+    (e/on js/window :resize @.on-resize)
     (doto @.input
-      (e/on :keydown @.onKeyDown)
-      (e/on :keyup @.onFilterChange)
+      (e/on :keydown @.on-key-down)
+      (e/on :keyup @.on-filter-change)
       (e/on :blur @.close)
       (.focus))
     (j/add-class @.box "fade-in")
@@ -99,8 +100,8 @@
     (set! @.keymap
           {"up" @.up
            "down" @.down
-           "pageup" @.pageUp
-           "pagedown" @.pageDown
+           "pageup" @.page-up
+           "pagedown" @.page-down
            "home" @.top
            "end" @.bottom
            "left" :swallow
@@ -111,15 +112,15 @@
            "C-g" @.abort
            "all" #(.log js/console "plonk" (kb/event-str %))}))
 
-  (defn onResize [event]
-    (@.scrollTo @.activeNode))
+  (defn on-resize [event]
+    (@.scroll-to @.active-node))
 
-  (defn onFilterChange [event]
+  (defn on-filter-change [event]
     (let [val (j/val @.input)]
-      (when (not= val @.activeFilter)
-        (@.applyFilter val))))
+      (when (not= val @.active-filter)
+        (@.apply-filter val))))
 
-  (defn onKeyDown [event]
+  (defn on-key-down [event]
     (kb/delegate event @.keymap))
 
   (defn up [e]
@@ -134,13 +135,13 @@
                       0
                       (inc @.active))))
 
-  (defn pageUp [e]
+  (defn page-up [e]
     (j/prevent e)
-    (@.activate (max (- @.active @.pageSize) 0)))
+    (@.activate (max (- @.active @.page-size) 0)))
 
-  (defn pageDown [e]
+  (defn page-down [e]
     (j/prevent e)
-    (@.activate (min (+ @.active @.pageSize)
+    (@.activate (min (+ @.active @.page-size)
                      (dec (count @.files)))))
 
   (defn top [e]
@@ -153,7 +154,7 @@
 
   (defn select [e]
     (j/prevent e)
-    (let [active (get @.files @.active)]
+    (let [active (nth @.files @.active)]
       (if (and active (pos? (count @.files)))
         (p/realise @.promise active)
         (p/realise-error @.promise nil)))
@@ -170,45 +171,42 @@
      200 (fn []
            (j/remove @.box)
            (j/remove @.input)
-           (e/remove-listener js/window :resize @.onResize))))
+           (e/remove-listener js/window :resize @.on-resize))))
 
-  (defn applyFilter [f]
-    (let [file-set @.fileSet
+  (defn apply-filter [f]
+    (let [file-set @.file-set
           last-active (get @.files @.active)]
-      (set! @.activeFilter f)
+      (set! @.active-filter f)
       (set! @.files (order-by-history
                      (if f (filter (partial filter-match f) file-set) file-set)
-                     @.bufferHistory))
-      (@.populateList)
+                     @.buffer-history))
+      (@.populate-list)
       (@.activate (if f 0 (max 0 (.indexOf @.files last-active))))))
 
-  (defn populateList []
-    (replace!
-     @.list
-     (if (zero? (count @.files))
-       [:li "No files match filter "
-        [:span.filter @.filter]]
-       (map (partial highlighted-node @.filter) @.files)))
+  (defn populate-list []
+    (set! @.list
+          (replace! @.list
+                    [:ul (map (partial highlighted-node @.filter) @.files)]))
     (set! @.nodes (j/children @.list "li")))
 
   (defn activate [index & [speed]]
     (let [speed (or speed 50)
           node (get @.nodes index)
-          prev @.activeNode]
+          prev @.active-node]
       (when prev (j/remove-class prev "active"))
       (set! @.active index)
-      (set! @.activeNode node)
+      (set! @.active-node node)
       (j/add-class node "active")
-      (when (not @.repositionTimeout)
-        (@.onRepositionTimeout speed)
-        (set! @.repositionTimeout
-              (js/setTimeout @.onRepositionTimeout (* speed 2))))))
+      (when (not @.reposition-timeout)
+        (@.on-reposition-timeout speed)
+        (set! @.reposition-timeout
+              (js/setTimeout @.on-reposition-timeout (* speed 2))))))
 
-  (defn onRepositionTimeout [speed]
-    (set! @.repositionTimeout nil)
-    (.scrollTo this @.activeNode speed))
+  (defn on-reposition-timeout [speed]
+    (set! @.reposition-timeout nil)
+    (.scroll-to this @.active-node speed))
 
-  (defn scrollTo [node speed]
+  (defn scroll-to [node speed]
     (let [vp @.viewport
           pos (+ (:top (j/position node)) (/ (j/height node) 2))
           vp-offset (/ (j/height @.box) 2)
