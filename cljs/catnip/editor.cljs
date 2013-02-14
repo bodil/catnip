@@ -7,6 +7,27 @@
          [ace.virtual_renderer :only [VirtualRenderer]]
          [ace.multi_select :only [MultiSelect]])
 
+(defn extend-ace-emitter [type]
+  (extend-protocol e/IEventEmitter
+    type
+    (on [emitter event listener]
+      (.on emitter (e/unpack-event event) listener))
+    (once [emitter event listener]
+      (let [event (e/unpack-event event)]
+        (.on emitter event (e/wrap-once emitter event listener))))
+    (remove-listener [emitter event listener]
+      (.removeListener emitter (e/unpack-event event) listener))
+    (remove-all-listeners [emitter]
+      (throw "ace.lib.event_emitter.EventEmitter doesn't support the `remove-all-listeners` method without an event argument."))
+    (remove-all-listeners [emitter event]
+      (.removeAllListeners emitter (e/unpack-event event)))
+    (listeners [emitter event]
+      (throw "ace.lib.event_emitter.EventEmitter doesn't support the `listeners` method."))
+    (emit [emitter event data]
+      (._emit emitter (e/unpack-event event) data))))
+
+(extend-ace-emitter Editor)
+
 (def ^:private editor (atom nil))
 
 (defn update-theme [editor]
