@@ -15,6 +15,14 @@
     transition: @rule;
 }
 
+.transition-vendor(@rule) {
+    -webkit-transition: -webkit-@rule;
+    -moz-transition: -moz-@rule;
+    -ms-transition: -ms-@rule;
+    -o-transition: -o-@rule;
+    transition: @rule;
+}
+
 .bevel-border {
     border-top: 1px solid #aaa;
     border-left: 1px solid #aaa;

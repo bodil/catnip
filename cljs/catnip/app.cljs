@@ -1,18 +1,19 @@
 (ns catnip.app
   (:use-macros [catnip.requirejs :only [require]]
-               [jayq.macros :only [ready]])
+               [redlobster.macros :only [defer]])
   (:use [catnip.editor :only [create-editor]]
         [catnip.session :only [load-buffer]])
-  (:require [jayq.core :as j :refer [$]]
+  (:require [catnip.dom :as dom]
             [catnip.socket :as socket]))
 
 (defn main []
-  (j/add-class ($ "body") (str "theme-" (or window/CatnipProfile.theme "light")))
+  (dom/add-class! (dom/q "body")
+                  (str "theme-" (or window/CatnipProfile.theme "light")))
 
   (socket/connect)
-  (create-editor (.getElementById js/document "editor"))
+  (create-editor (dom/id "editor"))
   (load-buffer "project.clj")
 
-  (j/remove-class ($ "body") "loading"))
+  (dom/remove-class! (dom/q "body") "loading"))
 
-(ready (main))
+(defer (main))

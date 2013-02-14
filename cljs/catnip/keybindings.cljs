@@ -1,6 +1,5 @@
 (ns catnip.keybindings
-  (:require [clojure.string :as string]
-            [jayq.core :as j]))
+  (:require [clojure.string :as string]))
 
 (def ^:private special-keys
   {8 "backspace", 9 "tab", 13 "return", 19 "pause",
@@ -25,7 +24,7 @@
   (if k (str v "-" s) s))
 
 (defn event-str [e]
-  (let [k (.-which e)]
+  (let [k (.-keyCode e)]
    (if (modifier-keys k) nil
        (let [k (or (special-keys k) (key-name k))]
          (-> k
@@ -49,5 +48,5 @@
   (when-let [k (event-str e)]
     (when-let [func (keymap-lookup k keymaps)]
       (if (= func :swallow)
-        (j/prevent e)
+        (.preventDefault e)
         (func e)))))

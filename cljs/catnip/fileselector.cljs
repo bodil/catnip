@@ -1,14 +1,12 @@
 (ns catnip.fileselector
   (:use-macros [catnip.requirejs :only [require]]
                [redlobster.macros :only [promise]]
-               [pylon.macros :only [defclass]]
-               [dommy.template-compile :only [deftemplate]])
-  (:require [jayq.core :as j :refer [$]]
-            [redlobster.events :as e]
+               [pylon.macros :only [defclass]])
+  (:require [redlobster.events :as e]
             [redlobster.promise :as p]
             [pylon.classes]
-            [catnip.dom :as dom :refer [append! replace!]]
             [catnip.keybindings :as kb]
+            [catnip.dom :as dom]
             [clojure.string :as string]))
 
 (defn- assoc-last [v i]
@@ -31,8 +29,7 @@
               (rest nodes))
 
        :else
-       (recur (conj r next) (rest nodes))
-       ))))
+       (recur (conj r next) (rest nodes))))))
 
 (defn- highlight-filter [filter node]
   (loop [r [] filter filter node node]
@@ -66,13 +63,16 @@
     (re-find re v)))
 
 (defn- install-box []
-  (append! ($ "body")
-           [:div.file-selector
-            [:div.viewport
-             [:ul]]]))
+  (let [box (dom/html [:div.file-selector
+                       [:div.viewport
+                        [:ul]]])]
+    (dom/append! (dom/q "body") box)
+    box))
 
 (defn- install-input []
-  (append! ($ "body") [:input.file-selector {:type "text"}]))
+  (let [input (dom/html [:input.file-selector {:type "text"}])]
+    (dom/append! (dom/q "body") input)
+    input))
 
 (defclass FileSelector
   (defn constructor [file-set buffer-history filter]
@@ -82,19 +82,19 @@
     (set! @.buffer-history buffer-history)
     (set! @.active-filter "")
     (set! @.box (install-box))
-    (set! @.viewport (j/children @.box "div"))
-    (set! @.list (j/find @.box "ul"))
+    (set! @.viewport (dom/q @.box "div"))
+    (set! @.list (dom/q @.box "ul"))
     (set! @.input (install-input))
     (@.populate-list)
-    (set! @.page-size (/ (j/height @.box)
-                        (j/height (j/children @.list "li:first-child"))))
+    (set! @.page-size (/ (dom/height @.box)
+                         (dom/height (dom/q @.list "li"))))
     (e/on js/window :resize @.on-resize)
     (doto @.input
       (e/on :keydown @.on-key-down)
       (e/on :keyup @.on-filter-change)
       (e/on :blur @.close)
       (.focus))
-    (j/add-class @.box "fade-in")
+    (dom/style! @.box "opacity" "1")
     (@.activate (if (> (count buffer-history) 1) 1 0) 200)
 
     (set! @.keymap
@@ -116,7 +116,7 @@
     (@.scroll-to @.active-node))
 
   (defn on-filter-change [event]
-    (let [val (j/val @.input)]
+    (let [val (.-value @.input)]
       (when (not= val @.active-filter)
         (@.apply-filter val))))
 
@@ -124,36 +124,36 @@
     (kb/delegate event @.keymap))
 
   (defn up [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate (if (zero? @.active)
                   (dec (count @.files))
                   (dec @.active))))
 
   (defn down [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate (if (= @.active (dec (count @.files)))
                       0
                       (inc @.active))))
 
   (defn page-up [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate (max (- @.active @.page-size) 0)))
 
   (defn page-down [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate (min (+ @.active @.page-size)
                      (dec (count @.files)))))
 
   (defn top [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate 0))
 
   (defn bottom [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (@.activate (dec (count @.files))))
 
   (defn select [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (let [active (nth @.files @.active)]
       (if (and active (pos? (count @.files)))
         (p/realise @.promise active)
@@ -161,17 +161,18 @@
     (@.close))
 
   (defn abort [e]
-    (j/prevent e)
+    (when e (.preventDefault e))
     (p/realise-error @.promise nil)
     (@.close))
 
   (defn close [e]
-    (when e (j/prevent e))
-    (j/fade-out @.box
-     200 (fn []
-           (j/remove @.box)
-           (j/remove @.input)
-           (e/remove-listener js/window :resize @.on-resize))))
+    (when e (.preventDefault e))
+    (e/once @.box :transitionend
+            #(do
+               (dom/remove! @.box)
+               (dom/remove! @.input)))
+    (e/remove-listener js/window :resize @.on-resize)
+    (dom/style! @.box "opacity" "0"))
 
   (defn apply-filter [f]
     (let [file-set @.file-set
@@ -185,35 +186,29 @@
 
   (defn populate-list []
     (set! @.list
-          (replace! @.list
-                    [:ul (map (partial highlighted-node @.filter) @.files)]))
-    (set! @.nodes (j/children @.list "li")))
+          (dom/replace! @.list
+                        (dom/html
+                         [:ul (map
+                               (partial highlighted-node @.filter)
+                               @.files)])))
+    (set! @.nodes (dom/q* @.list "li")))
 
   (defn activate [index & [speed]]
     (let [speed (or speed 50)
           node (get @.nodes index)
           prev @.active-node]
-      (when prev (j/remove-class prev "active"))
+      (when prev (dom/remove-class! prev "active"))
       (set! @.active index)
       (set! @.active-node node)
-      (j/add-class node "active")
-      (when (not @.reposition-timeout)
-        (@.on-reposition-timeout speed)
-        (set! @.reposition-timeout
-              (js/setTimeout @.on-reposition-timeout (* speed 2))))))
+      (dom/add-class! node "active")
+      (@.scroll-to node)))
 
-  (defn on-reposition-timeout [speed]
-    (set! @.reposition-timeout nil)
-    (.scroll-to this @.active-node speed))
-
-  (defn scroll-to [node speed]
+  (defn scroll-to [node & [speed]]
     (let [vp @.viewport
-          pos (+ (:top (j/position node)) (/ (j/height node) 2))
-          vp-offset (/ (j/height @.box) 2)
-          new-pos (+ (j/scroll-top vp) (- pos vp-offset))]
-      (if speed
-        (j/anim vp {:scrollTop new-pos} speed)
-        (j/scroll-top vp new-pos)))))
+          pos (+ (:top (dom/position node)) (/ (dom/height node) 2))
+          vp-offset (/ (dom/height @.box) 2)
+          new-pos (- pos vp-offset)]
+      (dom/style! @.list "-transform" (str "translate(0px,-" new-pos "px)")))))
 
 (defn file-selector [file-set buffer-history filter]
   (.-promise (FileSelector. file-set buffer-history filter)))

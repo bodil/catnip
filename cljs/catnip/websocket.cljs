@@ -1,7 +1,7 @@
 (ns catnip.websocket
   (:use-macros [catnip.requirejs :only [require]])
   (:require [redlobster.events :as e]
-            [jayq.core :as j :refer [$]]))
+            [catnip.dom :as dom]))
 
 (def WebSocket (or window/MozWebSocket window/WebSocket))
 
@@ -18,31 +18,22 @@
     (.close this code reason))
   (send [this message]
     (case (.-readyState this)
-      0 (let [queue (aget this "__catnip_queue")]
-        (aset this "__catnip_queue"
+      0 (let [queue (.-__catnip_queue this)]
+        (set! (.-__catnip_queue this)
               (if queue (conj queue message)
                   (vector message))))
       1 (.send this message)
-      (.error js/console "send: socket not open")))
-  e/IEventEmitter
-  (on [this event listener]
-    (j/on ($ this) (e/unpack-event event) listener))
-  (once [this event listener]
-    (j/one ($ this) (e/unpack-event event) listener))
-  (remove-listener [this event listener]
-    (j/off ($ this) (e/unpack-event event) listener))
-  (remove-all-listeners [emitter event]
-    (throw "WebSocket doesn't support the remove-all-listeners method."))
-  (emit [this event args]
-    (.triggerHandler ($ this) event (into-array args))))
+      (.error js/console "send: socket not open"))))
+
+(dom/extend-as-emitter WebSocket)
 
 (defn web-socket [url]
   (let [socket (WebSocket. url)]
     (e/on socket :open
           (fn []
             (.debug js/console "socket connected:" url)
-            (when-let [queue (aget socket "__catnip_queue")]
-              (aset socket "__catnip_queue" nil)
+            (when-let [queue (.-__catnip_queue socket)]
+              (set! (.-__catnip_queue socket) nil)
               (doseq [message queue]
                 (send socket message)))))
     socket))

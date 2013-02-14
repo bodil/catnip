@@ -3,7 +3,8 @@
                [redlobster.macros :only [promise]])
   (:require [redlobster.events :as e]
             [redlobster.promise :as p]
-            [catnip.websocket :as ws]))
+            [catnip.websocket :as ws]
+            [cljs.reader :refer [read-string]]))
 
 (def ^:private socket (atom nil))
 (def ^:private emitter (atom (e/event-emitter)))
@@ -13,8 +14,8 @@
   (swap! tag-counter inc))
 
 (defn- broadcast-message [e]
-  (.debug js/console "incoming msg:" (.-originalEvent.data e))
-  (let [event (cljs.reader/read-string (.-originalEvent.data e))]
+  (.debug js/console "incoming msg:" (.-event_.data e))
+  (let [event (read-string (.-event_.data e))]
     (e/emit @emitter "message" event)))
 
 (defn connect []

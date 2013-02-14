@@ -13,10 +13,9 @@
                  [clj-stacktrace "0.2.5"]
                  [cheshire "5.0.1"]
                  ; -- Cljs deps --
-                 [jayq "2.0.0"]
-                 [prismatic/dommy "0.0.2"]
                  [org.bodil/pylon "0.3.0"]
-                 [org.bodil/redlobster "0.2.0"]]
+                 [org.bodil/redlobster "0.2.0"]
+                 [crate "0.2.4"]]
   :hooks [leiningen.cljsbuild]
   :source-paths ["src"]
   :cljsbuild {:builds

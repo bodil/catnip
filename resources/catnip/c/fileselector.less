@@ -37,6 +37,7 @@ div.filename-entry:before {
 div.file-selector {
     text-align: center;
     opacity: 0;
+    .transition(opacity 0.2s ease);
 
     div.viewport {
         position: absolute;
@@ -51,6 +52,7 @@ div.file-selector {
             list-style: none;
             margin: 50% 0;
             padding: 0;
+            .transition(-webkit-transform 0.1s ease);
 
             li {
                 text-align: center;
@@ -70,11 +72,6 @@ div.file-selector {
             }
         }
     }
-}
-
-div.fade-in {
-    opacity: 1;
-    .transition(opacity 0.2s ease);
 }
 
 input.file-selector {
