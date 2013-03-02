@@ -4,9 +4,12 @@
   (:use [catnip.editor :only [create-editor]]
         [catnip.session :only [load-buffer]])
   (:require [catnip.dom :as dom]
-            [catnip.socket :as socket]))
+            [catnip.socket :as socket]
+            [catnip.commands :as cmd :refer [defcommand defkey]]
+            [catnip.keymap :as keymap]
+            [redlobster.events :as e]))
 
-(defn main []
+(defer
   (dom/add-class! (dom/q "body")
                   (str "theme-" (or window/CatnipProfile.theme "light")))
 
@@ -14,6 +17,8 @@
   (create-editor (dom/id "editor"))
   (load-buffer "project.clj")
 
-  (dom/remove-class! (dom/q "body") "loading"))
+  (e/on js/window :keydown (cmd/event-handler nil :global))
 
-(defer (main))
+  (keymap/setup)
+
+  (dom/remove-class! (dom/q "body") "loading"))

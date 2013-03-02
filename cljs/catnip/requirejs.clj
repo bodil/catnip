@@ -1,4 +1,5 @@
 (ns catnip.requirejs
+  (:refer-clojure :exclude [require])
   (:use [clojure.string :only [join split]]))
 
 (defn- path-to-string [path]

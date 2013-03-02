@@ -1,7 +1,8 @@
 (ns catnip.editor
   (:use-macros [catnip.requirejs :only [require]])
   (:require [redlobster.events :as e]
-            [catnip.dom :as dom]))
+            [catnip.dom :as dom]
+            [catnip.commands :as cmd]))
 
 (require [ace.editor :only [Editor]]
          [ace.virtual_renderer :only [VirtualRenderer]]
@@ -38,6 +39,10 @@
      (dom/has-class? body :theme-dark)
      (.setTheme editor "ace/theme/tomorrow_night_eighties"))))
 
+(defn install-kbd-handler [ed handler]
+  (let [handler (clj->js {:handleKeyboard handler})]
+    (.addKeyboardHandler (.-keyBinding ed) handler)))
+
 (defn create-editor [element]
   (let [ed (Editor. (VirtualRenderer. element))]
     (doto ed
@@ -46,8 +51,20 @@
       (update-theme)
       (.resize)
       (.focus))
+    (let [handler (cmd/event-handler ed :editor :global)]
+      (install-kbd-handler
+       ed
+       (fn [_ _ _ _ e]
+         (handler e)
+         (when (.-defaultPrevented e)
+           (clj->js {:command "null"})))))
     (e/on js/window :resize #(.resize ed))
-    (reset! editor ed)))
+    (reset! editor ed)
+    (set! (.-editor js/window) ed)))
 
 (defn set-session [session]
   (.setSession @editor session))
+
+(defn focus
+  ([] (focus @editor))
+  ([editor] (.focus editor)))

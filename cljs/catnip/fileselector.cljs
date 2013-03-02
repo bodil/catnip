@@ -75,7 +75,7 @@
     input))
 
 (defclass FileSelector
-  (defn constructor [file-set buffer-history filter]
+  (defn constructor [file-set buffer-history]
     (set! @.promise (p/promise))
     (set! @.file-set file-set)
     (set! @.files (order-by-history file-set buffer-history))
@@ -210,5 +210,5 @@
           new-pos (- pos vp-offset)]
       (dom/style! @.list "-transform" (str "translate(0px,-" new-pos "px)")))))
 
-(defn file-selector [file-set buffer-history filter]
-  (.-promise (FileSelector. file-set buffer-history filter)))
+(defn file-selector [file-set buffer-history]
+  (.-promise (FileSelector. file-set buffer-history)))
