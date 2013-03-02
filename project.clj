@@ -16,10 +16,14 @@
                  [org.bodil/pylon "0.3.0"]
                  [org.bodil/redlobster "0.2.0"]
                  [crate "0.2.4"]]
+  :profiles
+  {:dev {:dependencies [[com.cemerick/piggieback "0.0.4"]]
+         :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+         :source-paths ["src" "cljs"]}}
   :hooks [leiningen.cljsbuild]
   :source-paths ["src"]
   :cljsbuild {:builds
-              [{:source-paths ["cljs"]
+              [{:source-paths ["cljs" "dev-cljs"]
                 :compiler
                 {:output-to "resources/catnip/cljs/main.js"
                  :output-dir "resources/catnip/cljs"

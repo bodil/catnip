@@ -10,7 +10,9 @@
             [catnip.complete :as complete]
             [catnip.project-clj :as project-clj]
             [catnip.edn :as edn]
-            [clojure.repl])
+            [clojure.repl]
+            [cemerick.piggieback :as piggieback]
+            [cljs.repl.browser])
   (:use [clojure.test]
         [catnip.webbit :only [relative-file-handler]])
   (:import [org.webbitserver WebServer WebServers WebSocketHandler
@@ -98,6 +100,11 @@
 
 (defn stop []
   (.stop *server*))
+
+(defn run-repl []
+  (piggieback/cljs-repl
+   :repl-env (doto (cljs.repl.browser/repl-env :port 9337)
+               cljs.repl/-setup)))
 
 (defn -main [& m]
   (let [port (Integer. (get (System/getenv) "PORT" "1337"))]

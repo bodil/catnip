@@ -11,3 +11,5 @@ pom.xml
 /plugin/pom.xml.asc
 /pom.xml.asc
 /.lein-failures
+/.lein-repl-history
+/.repl
