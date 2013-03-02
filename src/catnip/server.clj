@@ -11,6 +11,7 @@
             [catnip.project-clj :as project-clj]
             [catnip.edn :as edn]
             [clojure.repl]
+            [clojure.edn]
             [cemerick.piggieback :as piggieback]
             [cljs.repl.browser])
   (:use [clojure.test]
@@ -38,7 +39,7 @@
 
 (defn on-message [socket msg-str]
   (future
-    (let [msg (read-string msg-str)
+    (let [msg (clojure.edn/read-string msg-str)
           results
           (try
             (cond
