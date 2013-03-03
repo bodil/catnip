@@ -17,8 +17,9 @@
                      (assoc keymaps keymap new-keymap)))))
 
 (defn command [context name]
-  (when-let [cmd (@commands name)]
-    ((:function cmd) (:context cmd))))
+  (if-let [cmd (@commands name)]
+    ((:function cmd) context)
+    (.error js/console (str "Unknown command " name))))
 
 (defn doc [name]
   (when-let [cmd (@commands name)]

@@ -3,6 +3,7 @@
             [clojure.string :as s]
             [goog.dom]
             [goog.dom.classes]
+            [goog.dom.forms]
             [goog.events]
             [goog.style]
             [crate.core :as crate]))
@@ -181,6 +182,18 @@ as a map with `:left` and `:top` keys."
   (when (contains? offset :top)
     (set! (.-scrollTop node) (:top offset))))
 
+(defn scroll-into-view!
+  "Changes the scroll position of container with the minimum amount so
+that the content and the borders of the given element become visible.
+If the element is bigger than the container, its top left corner will
+be aligned as close to the container's top left corner as possible.
+
+If no container is specified, the element's immediate parent is assumed."
+  ([element container]
+     (goog.style/scrollIntoContainerView element container))
+  ([element]
+     (scroll-into-view! element (goog.dom/getParentElement element))))
+
 (def ^:private -vendor-prefix
   (vendor-mangle nil "-webkit" "-moz" "-ms" "-o"))
 
@@ -196,3 +209,18 @@ automatically append the applicable vendor prefix."
   [node & pairs]
   (doseq [[style value] (partition 2 pairs)]
     (goog.style/setStyle node (vendor-prefix style) value)))
+
+(defn active-element
+  "Get the element that currently has focus."
+  []
+  (.-activeElement js/document))
+
+(defn value
+  "Get the value of an input element."
+  [node]
+  (goog.dom.forms/getValue node))
+
+(defn value!
+  "Set the value of an input element."
+  [node value]
+  (goog.dom.forms/setValue node value))

@@ -1,6 +1,6 @@
 (ns catnip.session
   (:use-macros [catnip.requirejs :only [require]]
-               [redlobster.macros :only [await let-realised]])
+               [redlobster.macros :only [waitp let-realised]])
   (:require [redlobster.promise :as p]
             [catnip.socket :as socket]
             [catnip.editor :as editor]
@@ -32,13 +32,16 @@
 
 (defn load-buffer
   ([path line]
-     (await
+     (waitp
       (socket/send {:fs {:command "read" :path path}})
-      (do
+      (fn [result]
         (editor/set-session (create-session path (-> result :fs :file)))
         (push-buffer-history path)
-        (editor/focus))
-      (.error js/console "read failed so hard" path)))
+        (editor/focus)
+        (realise true))
+      (fn [_]
+        (.error js/console "read failed so hard" path)
+        (realise-error false))))
   ([path] (load-buffer path nil)))
 
 (defcommand "open-file"
