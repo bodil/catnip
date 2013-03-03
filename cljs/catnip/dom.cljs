@@ -224,3 +224,8 @@ automatically append the applicable vendor prefix."
   "Set the value of an input element."
   [node value]
   (goog.dom.forms/setValue node value))
+
+(defn text!
+  "Set the text content of an element."
+  [node text]
+  (goog.dom/setTextContent node text))

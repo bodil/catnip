@@ -9,11 +9,16 @@
             [redlobster.events :as e]
             [clojure.string :as string]))
 
+(defn- update-namespace [repl ns]
+  (when ns
+    (dom/text! (:prompt repl) (name ns))))
+
 (defrecord REPL [input display prompt state]
   c/IComponent
 
   (-init [repl]
-    (e/on input :keydown (cmd/event-handler repl :repl :global)))
+    (e/on input :keydown (cmd/event-handler repl :repl :global))
+    (socket/on-message #(update-namespace repl (:ns %))))
 
   (-destroy [repl]
     (e/remove-all-listeners input nil)))

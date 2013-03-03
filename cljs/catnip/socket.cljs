@@ -30,13 +30,19 @@
     (.debug js/console "send:" message)
     (ws/send @socket message)))
 
+(defn on-message [listener]
+  (e/on @emitter "message" listener))
+
+(defn off-message [listener]
+  (e/remove-listener @emitter "message" listener))
+
 (defn send [message]
   (promise
    (let [tag (mktag)]
-     (e/on @emitter "message"
-           (fn response-listener [event]
-             (when (= tag (:tag event))
-               (e/remove-listener @emitter "message" response-listener)
-               (realise event))))
+     (on-message
+      (fn response-listener [event]
+        (when (= tag (:tag event))
+          (off-message response-listener)
+          (realise event))))
      (e/on @socket "close" #(realise-error nil))
      (send-message message tag))))
