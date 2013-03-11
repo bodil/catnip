@@ -1,5 +1,5 @@
 (ns catnip.repl
-  (:use-macros [redlobster.macros :only [waitp]])
+  (:use-macros [redlobster.macros :only [waitp let-realised]])
   (:require [catnip.dom :as dom]
             [catnip.commands :as cmd :refer [defcommand]]
             [catnip.editor :as editor]
@@ -134,19 +134,31 @@
 (defn repl-print-exception [error & [pos-in-file]]
   (print-node (exception-node error pos-in-file)))
 
-(defn- print-eval [msg]
+(defn- print-eval [ann msg & [skip-first]]
   ;; FIXME: implement (correct-lines msg)
-  (doseq [result (:eval msg)]
-    (repl-print :code (-> result :code :form) (-> result :code :ns))
-    (when-let [out (:out result)] (repl-print :out out))
-    (if-let [error (:error result)]
-      (repl-print-exception error)
-      (repl-print :result (:result result)))))
+  (let [results (:eval msg)
+        anns (:eval ann)
+        results (map (partial apply merge)
+                     (partition 2 (interleave anns results)))
+        print-form
+        (fn [result skip-input]
+          (when-not skip-input
+            (repl-print :code (-> result :code :form) (-> result :code :ns)))
+          (when-let [out (:out result)] (repl-print :out out))
+          (if-let [error (:error result)]
+            (repl-print-exception error)
+            (repl-print :result (:result result))))]
+    (print-form (first results) skip-first)
+    (doseq [result (rest results)] (print-form result false))))
 
-(defn- on-eval [msg]
-  (waitp msg
-    #(realise (print-eval %))
-    #(realise-error %)))
+(defn repl-eval [code]
+  (let-realised [ann (socket/send {:annotate code :target :node})]
+    (let [forms (:eval @ann)
+          form1 (:code (first forms))]
+      ;; Print the first form while the code evaluates
+      (repl-print :code (:form form1) (:ns form1))
+      (let-realised [result (socket/send {:eval code :target :node})]
+        (print-eval @ann @result true)))))
 
 (defcommand "toggle-repl"
   (fn [_]
@@ -159,4 +171,4 @@
     (let [value (dom/value (:input repl))]
       (dom/value! (:input repl) "")
       (push-history! repl value)
-      (on-eval (socket/send {:eval value :target :node})))))
+      (repl-eval value))))

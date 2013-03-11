@@ -26,9 +26,7 @@
       (let [result (eval* socket sexp
                           {#'*out* out #'*err* out
                            #'*test-out* out})]
-        {:code {:ns code-ns :text (ppr sexp)
-                :form (annotate-form (.data socket "ns") sexp)}
-         :result (annotate-form (.data socket "ns") result)
+        {:result (annotate-form (.data socket "ns") result)
          :out (str out)})
       (catch Exception e
         (let [e (repl/root-cause e)
@@ -43,6 +41,11 @@
            (or (if-let [m (re-find chop-exc-re msg)] (second m)) msg)
            :errline
            (if-let [m (re-find errline-re msg)] (Integer. (second m)))})))))
+
+(defn annotate-sexp [socket sexp]
+  (let [code-ns (str (.data socket "ns"))]
+    {:code {:ns code-ns :text (ppr sexp)
+            :form (annotate-form code-ns sexp)}}))
 
 (defn resolve-ns [socket ns]
   (if ns (create-ns (symbol ns))

@@ -45,6 +45,12 @@
           results
           (try
             (cond
+             (:annotate msg)
+             (repl/eval-string socket (:path msg) (:annotate msg)
+                               (case (:target msg)
+                                 :clj jvm/annotate-sexp
+                                 :node node/annotate-sexp))
+
              (:eval msg)
              (repl/eval-string socket (:path msg) (:eval msg)
                                (case (:target msg)

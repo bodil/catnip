@@ -60,9 +60,9 @@
                (string? form#) {:type :string :value form#}
                (instance? js/RegExp form#) {:type :re :value (.-source form#)}
                (symbol? form#) {:type :symbol :value (name form#)
-                               :namespace (namespace form#)}
-               (keyword? form#) {:type :keyword :value (name form#)
                                 :namespace (namespace form#)}
+               (keyword? form#) {:type :keyword :value (name form#)
+                                 :namespace (namespace form#)}
                (list? form#) {:type :list :value (note-seq# form#)}
                (vector? form#) {:type :vector :value (note-seq# form#)}
                (set? form#) {:type :set :value (note-seq# form#)}
@@ -74,12 +74,16 @@
 
 (defn eval-sexp [socket form]
   (let [repl-env (get-env socket)
-        code-ns (str (.data socket "node.ns"))
         env {:context :expr :locals {} :ns (.data socket "node.ns")}
-        ann-form (repl/evaluate-form repl-env env "<cljs repl>"
-                                     (list 'quote form) represent)
         result (repl/evaluate-form repl-env env "<cljs repl>" form represent)]
     (.data socket "node.ns" ana/*cljs-ns*)
+    {:result (when result (read-string result))}))
+
+(defn annotate-sexp [socket form]
+  (let [repl-env (get-env socket)
+        env {:context :expr :locals {} :ns (.data socket "node.ns")}
+        code-ns (str (.data socket "node.ns"))
+        ann-form (repl/evaluate-form repl-env env "<cljs repl>"
+                                     (list 'quote form) represent)]
     {:code {:ns code-ns :text (ppr form)
-            :form (when ann-form (read-string ann-form))}
-     :result (when result (read-string result))}))
+            :form (when ann-form (read-string ann-form))}}))
