@@ -47,11 +47,12 @@
 (defn- order-by-history [l history]
   (let [lset (apply hash-set l)
         hset (apply hash-set history)]
-    (if (seq history)
-      (concat
-       (filter #(contains? lset %) history)
-       (remove #(contains? hset %) l))
-      l)))
+    (vec
+     (if (seq history)
+       (concat
+        (filter #(contains? lset %) history)
+        (remove #(contains? hset %) l))
+       l))))
 
 (def ^:private filter-cache
   (memoize
@@ -77,7 +78,7 @@
 (defclass FileSelector
   (defn constructor [file-set buffer-history]
     (set! @.promise (p/promise))
-    (set! @.file-set file-set)
+    (set! @.file-set (vec file-set))
     (set! @.files (order-by-history file-set buffer-history))
     (set! @.buffer-history buffer-history)
     (set! @.active-filter "")
@@ -92,7 +93,7 @@
     (doto @.input
       (e/on :keydown @.on-key-down)
       (e/on :keyup @.on-filter-change)
-      (e/on :blur @.close)
+      ;; (e/on :blur @.close)
       (.focus))
     (dom/style! @.box "opacity" "1")
     (@.activate (if (> (count buffer-history) 1) 1 0) 200)
@@ -189,7 +190,7 @@
           (dom/replace! @.list
                         (dom/html
                          [:ul (map
-                               (partial highlighted-node @.filter)
+                               (partial highlighted-node @.active-filter)
                                @.files)])))
     (set! @.nodes (dom/q* @.list "li")))
 
