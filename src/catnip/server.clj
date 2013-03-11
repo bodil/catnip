@@ -6,11 +6,12 @@
   (:require [net.cgrand.enlive-html :as html]
             [catnip.filesystem :as fs]
             [catnip.profile :as profile]
-            [catnip.repl :as repl]
+            [catnip.repl.util :as repl]
+            [catnip.repl.jvm :as jvm]
+            [catnip.repl.node :as node]
             [catnip.complete :as complete]
             [catnip.project-clj :as project-clj]
             [catnip.edn :as edn]
-            [clojure.repl]
             [clojure.edn]
             [cemerick.piggieback :as piggieback]
             [cljs.repl.browser])
@@ -35,7 +36,8 @@
 (defn on-connect [socket]
   (.data socket "ns" (create-ns 'user)))
 
-(defn on-disconnect [socket] )
+(defn on-disconnect [socket]
+  (node/cleanup socket))
 
 (defn on-message [socket msg-str]
   (future
@@ -44,14 +46,17 @@
           (try
             (cond
              (:eval msg)
-             (repl/eval-string socket (:path msg) (:eval msg))
+             (repl/eval-string socket (:path msg) (:eval msg)
+                               (case (:target msg)
+                                 :clj jvm/eval-sexp
+                                 :node node/eval-sexp))
 
              (:complete msg)
-             {:complete (repl/complete-string
+             {:complete (jvm/complete-string
                          socket (:complete msg) (:ns msg))}
 
              (:doc msg)
-             {:doc (repl/document-symbol socket (:doc msg) (:ns msg))
+             {:doc (jvm/document-symbol socket (:doc msg) (:ns msg))
               :symbol (:doc msg)}
 
              (:fs msg)

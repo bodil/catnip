@@ -5,13 +5,14 @@
   :url "https://github.com/bodil/catnip"
   :license {:name "Mozilla Public License"
             :url "http://www.mozilla.org/MPL/2.0/"}
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.webbitserver/webbit "0.4.6"]
                  [org.clojure/clojurescript "0.0-1586"]
                  [clj-info "0.3.1"]
                  [enlive "1.0.1"]
                  [clj-stacktrace "0.2.5"]
                  [cheshire "5.0.1"]
+                 [org.bodil/cljs-noderepl "0.1.9"]
                  ; -- Cljs deps --
                  [org.bodil/pylon "0.3.0"]
                  [org.bodil/redlobster "0.2.0"]

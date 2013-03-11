@@ -118,8 +118,9 @@
     (span :var (:value form))
 
     :object
-    (span :object (str "#<" (if-let [class (-> form :value :class)]
-                              (str class " ") "")
-                       (-> form :value :name) ">"))
+    (span :object (or (:name form)
+                      (str "#<" (if-let [class (-> form :value :class)]
+                                  (str class " ") "")
+                           (-> form :value :name) ">")))
 
     (span :error "*ERROR*")))

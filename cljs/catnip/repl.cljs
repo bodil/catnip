@@ -9,6 +9,8 @@
             [redlobster.events :as e]
             [clojure.string :as string]))
 
+(declare repl-print)
+
 (defn- update-namespace [repl ns]
   (when ns
     (dom/text! (:prompt repl) (name ns))))
@@ -18,7 +20,10 @@
 
   (-init [repl]
     (e/on input :keydown (cmd/event-handler repl :repl :global))
-    (socket/on-message #(update-namespace repl (:ns %))))
+    (socket/on-message
+     (fn [x]
+       (when-let [ns (:ns x)] (update-namespace repl ns))
+       (when-let [out (:out x)] (repl-print :out out)))))
 
   (-destroy [repl]
     (e/remove-all-listeners input nil)))
@@ -140,8 +145,8 @@
 
 (defn- on-eval [msg]
   (waitp msg
-         #(realise (print-eval %))
-         #(realise-error %)))
+    #(realise (print-eval %))
+    #(realise-error %)))
 
 (defcommand "toggle-repl"
   (fn [_]
@@ -154,4 +159,4 @@
     (let [value (dom/value (:input repl))]
       (dom/value! (:input repl) "")
       (push-history! repl value)
-      (on-eval (socket/send {:eval value})))))
+      (on-eval (socket/send {:eval value :target :node})))))
