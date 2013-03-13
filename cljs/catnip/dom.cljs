@@ -4,6 +4,7 @@
             [goog.dom]
             [goog.dom.classes]
             [goog.dom.forms]
+            [goog.dom.selection]
             [goog.events]
             [goog.style]
             [crate.core :as crate]))
@@ -229,3 +230,8 @@ automatically append the applicable vendor prefix."
   "Set the text content of an element."
   [node text]
   (goog.dom/setTextContent node text))
+
+(defn caret!
+  "Set the caret position of an input element."
+  [node pos]
+  (goog.dom.selection/setCursorPosition node pos))

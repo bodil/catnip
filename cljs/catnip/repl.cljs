@@ -6,6 +6,7 @@
             [catnip.component :as c]
             [catnip.socket :as socket]
             [catnip.pprint :refer [pprint]]
+            [catnip.history :as history]
             [redlobster.events :as e]
             [clojure.string :as string]))
 
@@ -15,7 +16,7 @@
   (when ns
     (dom/text! (:prompt repl) (name ns))))
 
-(defrecord REPL [input display prompt state]
+(defrecord REPL [input display prompt history state]
   c/IComponent
 
   (-init [repl]
@@ -31,7 +32,7 @@
 (def ^:private current-repl (atom nil))
 
 (defn create-repl [input display prompt]
-  (let [repl (REPL. input display prompt
+  (let [repl (REPL. input display prompt (history/history)
                     (atom {:history-pos 0
                            :history ()}))]
     (c/-init repl)
@@ -42,13 +43,6 @@
 
 (defn focus [repl]
   (.focus (:input repl)))
-
-(defn- push-history! [repl value]
-  (swap! (:state repl)
-         (fn [state]
-           (assoc state
-             :history-pos 0
-             :history (cons value (:list state))))))
 
 (defn- linkify [msg]
   ;; FIXME: implement
@@ -170,5 +164,17 @@
   (fn [repl]
     (let [value (dom/value (:input repl))]
       (dom/value! (:input repl) "")
-      (push-history! repl value)
+      (history/-push (:history repl) value)
       (repl-eval value))))
+
+(defcommand "repl-history-forward"
+  (fn [repl]
+    (when-let [value (history/-forward (:history repl))]
+      (dom/value! (:input repl) value)
+      (dom/caret! (:input repl) (count value)))))
+
+(defcommand "repl-history-back"
+  (fn [repl]
+    (when-let [value (history/-back (:history repl) (dom/value (:input repl)))]
+      (dom/value! (:input repl) value)
+      (dom/caret! (:input repl) (count value)))))
