@@ -7,11 +7,10 @@
   (-back [this current]))
 
 (defn- push-history [entry state]
-  (if (= entry (last (:history state)))
-    state
-    (-> state
-        (update-in [:history] #(conj % entry))
-        (assoc :pos 0))))
+  (let [state (assoc state :pos 0)]
+    (if (= entry (last (:history state)))
+      state
+      (update-in state [:history] #(conj % entry)))))
 
 (defn- history-back [current state]
   (if (> (:pos state) (- (count (:history state))))
