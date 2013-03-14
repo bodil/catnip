@@ -4,11 +4,11 @@
 (declare pprint)
 
 (defn- span [class text]
-  [:span.clojure {:class (name class)} text])
+  [(keyword (str "span.clojure." (name class))) text])
 
 (defn- a [class text doc]
-  [:a.clojure {:class (name class)
-               :data-doc (JSON/stringify (clj->js doc))}
+  [(keyword (str "a.clojure." (name class)))
+   {:data-doc (JSON/stringify (clj->js doc))}
    text])
 
 (defn- seq-node [class parens forms & [argsub]]
