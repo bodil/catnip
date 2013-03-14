@@ -24,7 +24,8 @@
     (socket/on-message
      (fn [x]
        (when-let [ns (:ns x)] (update-namespace repl ns))
-       (when-let [out (:out x)] (repl-print :out out)))))
+       (when-let [out (:out x)] (repl-print :out out))
+       (when-let [warn (:warn x)] (repl-print :error warn)))))
 
   (-destroy [repl]
     (e/remove-all-listeners input nil)))
@@ -141,7 +142,8 @@
           (when-let [out (:out result)] (repl-print :out out))
           (if-let [error (:error result)]
             (repl-print-exception error)
-            (repl-print :result (:result result))))]
+            (when-let [result (:result result)]
+              (repl-print :result result))))]
     (print-form (first results) skip-first)
     (doseq [result (rest results)] (print-form result false))))
 

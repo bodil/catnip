@@ -2,8 +2,10 @@
   (:require [catnip.commands :refer [defcommand defkey]]))
 
 (defn setup []
-  (defkey :global "C-f" "open-file")
   (defkey :global "C-r" "toggle-repl")
+
+  (defkey :global "C-f" "open-file")
+  (defkey :global "C-s" "save-buffer")
 
   (defkey :repl "return" "repl-eval")
   (defkey :repl "up" "repl-history-back")

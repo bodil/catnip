@@ -68,3 +68,7 @@
 (defn focus
   ([] (focus @editor))
   ([editor] (.focus editor)))
+
+(defn active-session
+  ([] (active-session @editor))
+  ([editor] (.getSession editor)))

@@ -7,8 +7,8 @@
             [cljs.repl :as repl]
             [cljs.analyzer :as ana]
             [catnip.repl.util :refer [ppr pprint-exception]]
-            [catnip.annotate :refer [annotate-form]]
             [catnip.edn :as edn]
+            [catnip.repl.util :refer [socket-ns set-socket-ns]]
             [clojure.string :as s]))
 
 (defn print-to-socket [socket s]
@@ -21,9 +21,15 @@
         (.send socket (edn/to-edn {:out (subs @buffer 0 break) :target :node}))
         (swap! buffer #(subs % (inc break)))))))
 
+(defn send-warning [socket s]
+  (when (pos? (count (s/trim s)))
+    (.send socket (edn/to-edn {:warn s :target :node}))))
+
 (defn make-env [socket]
   (let [repl-env (node/repl-env :output (partial print-to-socket socket))]
     (repl/-setup repl-env)
+    ;; FIXME: (repl/analyze-source "path-to-cljs-files")
+    (repl/analyze-source "cljs")
     repl-env))
 
 (defn get-env [socket]
@@ -45,12 +51,9 @@
                   note-fn# (fn [form#]
                              {:type :function
                               :name
-                              (str
-                               "#<"
-                               (second
-                                (re-matches #"^(function\s*\([^)]*\))(?:.|\n)*"
-                                            (str form#)))
-                               ">")
+                              (str "#<" (second
+                                         (re-matches #"^(function[^(]*\([^)]*\))(?:.|\n)*"
+                                                     (str form#))) ">")
                               :value (str form#)})]
               (cond
                (nil? form#) {:type :symbol :value "nil"}
@@ -72,18 +75,34 @@
                :else {:type :object :name (cljs.core/pr-str form#)})))]
       (note# ~x))))
 
-(defn eval-sexp [socket form]
+(defn eval-form [socket repl-env env file form represent]
+  (binding [ana/*cljs-ns* (socket-ns socket :node)
+            ana/*cljs-warn-on-undeclared* true
+            *out* (java.io.StringWriter.)]
+    (let [result
+          (repl/evaluate-form repl-env
+                              (assoc env :ns (ana/get-namespace ana/*cljs-ns*))
+                              file form represent)]
+      (when (and (seq? form) (= 'ns (first form)))
+        ;; FIXME: why is this necessary?!??!!!11
+        (repl/evaluate-form repl-env (assoc env :ns (ana/get-namespace ana/*cljs-ns*)) file
+                            (list 'js* (str "function(){if(!goog.isProvided_('"
+                                            (second form) "'))goog.provide('"
+                                            (second form) "')}()")) represent))
+      (set-socket-ns socket :node ana/*cljs-ns*)
+      (if (count (str *out*)) (send-warning socket (str *out*)))
+      result)))
+
+(defn eval-sexp [socket path form]
   (let [repl-env (get-env socket)
-        env {:context :expr :locals {} :ns (.data socket "node.ns")}
-        result (repl/evaluate-form repl-env env "<cljs repl>" form represent)]
-    (.data socket "node.ns" ana/*cljs-ns*)
+        env {:context :expr :locals {}}
+        result (eval-form socket repl-env env path form represent)]
     {:result (when result (read-string result))}))
 
-(defn annotate-sexp [socket form]
+(defn annotate-sexp [socket path form]
   (let [repl-env (get-env socket)
-        env {:context :expr :locals {} :ns (.data socket "node.ns")}
-        code-ns (str (.data socket "node.ns"))
-        ann-form (repl/evaluate-form repl-env env "<cljs repl>"
-                                     (list 'quote form) represent)]
+        env {:context :expr :locals {}}
+        code-ns (str (socket-ns socket :node))
+        ann-form (eval-form socket repl-env env path (list 'quote form) represent)]
     {:code {:ns code-ns :text (ppr form)
             :form (when ann-form (read-string ann-form))}}))

@@ -34,7 +34,8 @@
         (.end))))
 
 (defn on-connect [socket]
-  (.data socket "ns" (create-ns 'user)))
+  (.data socket "ns" (atom {:jvm (create-ns 'user)
+                            :node 'cljs.user})))
 
 (defn on-disconnect [socket]
   (node/cleanup socket))
@@ -42,18 +43,19 @@
 (defn on-message [socket msg-str]
   (future
     (let [msg (clojure.edn/read-string msg-str)
+          target (:target msg)
           results
           (try
             (cond
              (:annotate msg)
              (repl/eval-string socket (:path msg) (:annotate msg)
-                               (case (:target msg)
+                               (case target
                                  :clj jvm/annotate-sexp
                                  :node node/annotate-sexp))
 
              (:eval msg)
              (repl/eval-string socket (:path msg) (:eval msg)
-                               (case (:target msg)
+                               (case target
                                  :clj jvm/eval-sexp
                                  :node node/eval-sexp))
 
@@ -78,7 +80,7 @@
         (.send socket
                (edn/to-edn
                 (assoc results
-                  :ns (.data socket "ns")
+                  :ns (str (repl/socket-ns socket target))
                   :tag (:tag msg))))
         (catch Exception e
           (let [message (repl/pprint-exception e)]

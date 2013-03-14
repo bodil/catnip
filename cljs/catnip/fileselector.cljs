@@ -93,7 +93,7 @@
     (doto @.input
       (e/on :keydown @.on-key-down)
       (e/on :keyup @.on-filter-change)
-      ;; (e/on :blur @.close)
+      (e/on :blur @.close)
       (.focus))
     (dom/style! @.box "opacity" "1")
     (@.activate (if (> (count buffer-history) 1) 1 0) 200)
@@ -111,7 +111,7 @@
            "tab" @.select
            "esc" @.abort
            "C-g" @.abort
-           "all" #(.log js/console "plonk" (kb/event-str %))}))
+           "all" #()}))
 
   (defn on-resize [event]
     (@.scroll-to @.active-node))

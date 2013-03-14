@@ -12,7 +12,7 @@
                  [enlive "1.0.1"]
                  [clj-stacktrace "0.2.5"]
                  [cheshire "5.0.1"]
-                 [org.bodil/cljs-noderepl "0.1.9"]
+                 [org.bodil/cljs-noderepl "0.1.8"]
                  ; -- Cljs deps --
                  [org.bodil/pylon "0.3.0"]
                  [org.bodil/redlobster "0.2.0"]

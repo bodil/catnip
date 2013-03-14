@@ -50,25 +50,31 @@
     (string/trim (with-out-str (pprint/pprint el))))
   (is (= "1337" (ppr 1337))))
 
-(defn eval-stream [socket s eval-func]
+(defn eval-stream [socket path s eval-func]
   (loop [line (.getLineNumber s)
-         sexp (read s false nil)
+         sexp (read s false :repl-stream-ended)
          results []]
-    (if-not (nil? sexp)
-      (let [result (assoc (eval-func socket sexp) :line line)]
+    (if-not (= :repl-stream-ended sexp)
+      (let [result (assoc (eval-func socket path sexp) :line line)]
         (if (result :error)
           (conj results result)
-          (recur (.getLineNumber s) (read s false nil) (conj results result))))
+          (recur (.getLineNumber s) (read s false :repl-stream-ended) (conj results result))))
       results)))
 
 (defn eval-string [socket path s eval-func]
   (let [s (stream s)]
     (try
       {:path path
-       :eval (eval-stream socket s eval-func)}
+       :eval (eval-stream socket (or path "<repl>") s eval-func)}
       (catch Exception e
         (let [e (repl/root-cause e)]
           {:path path
            :error (pprint-exception e)
            :annotation (.getMessage e)
            :line (.getLineNumber s)})))))
+
+(defn socket-ns [socket target]
+  (get @(.data socket "ns") target))
+
+(defn set-socket-ns [socket target ns]
+  (swap! (.data socket "ns") assoc target ns))
