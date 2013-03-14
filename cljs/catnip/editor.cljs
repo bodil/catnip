@@ -55,9 +55,10 @@
       (install-kbd-handler
        ed
        (fn [_ _ _ _ e]
-         (handler e)
-         (when (.-defaultPrevented e)
-           (clj->js {:command "null"})))))
+         (when e
+           (handler e)
+           (when (.-defaultPrevented e)
+             (clj->js {:command "null"}))))))
     (e/on js/window :resize #(.resize ed))
     (reset! editor ed)
     (set! (.-editor js/window) ed)))
