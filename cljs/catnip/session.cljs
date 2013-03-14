@@ -6,7 +6,8 @@
             [catnip.editor :as editor]
             [catnip.commands :refer [defcommand]]
             [catnip.fileselector :refer [file-selector]]
-            [catnip.path :as path]))
+            [catnip.path :as path]
+            [catnip.repl :refer [repl-print repl-print-error]]))
 
 (require [ace.edit_session :only [EditSession]]
          [ace.mode.clojure :only [Mode]]
@@ -30,6 +31,11 @@
     (set! (.-bufferName session) path)
     (set! (.-dirty session) false)
     session))
+
+(defn annotate [session annotation]
+  (if annotation
+    (.setAnnotations session (clj->js [annotation]))
+    (.clearAnnotations session)))
 
 (defn load-buffer
   ([path line]
@@ -56,17 +62,31 @@
                 :path (.-bufferName session)}))
 
 (defcommand "open-file"
-    (fn []
-      ;; TODO: Wrap this in a spinner-until-realised thing?
-      (let-realised [files (socket/send {:fs {:command "files"}})]
-        (let-realised [selected (file-selector (-> @files :fs :files) @buffer-history)]
-          (load-buffer @selected)))))
+  (fn []
+    ;; TODO: Wrap this in a spinner-until-realised thing?
+    (let-realised [files (socket/send {:fs {:command "files"}})]
+      (let-realised [selected (file-selector (-> @files :fs :files) @buffer-history)]
+        (load-buffer @selected)))))
 
 (defcommand "save-buffer"
   (fn []
     (let [session (editor/active-session)]
       (let-realised [result (save-buffer session)]
-        (let [path (:path @result)
-              ext (path/file-extension path)]
-          (cond
-           (#{"cljs" "clj"} ext) (eval-buffer session)))))))
+        (if (:success @result)
+          (do
+            (repl-print :result (str (:path @result) " saved."))
+            (let [path (:path @result)
+                  ext (path/file-extension path)]
+              (cond
+               (and (#{"cljs" "clj"} ext) (not= "project.clj" path))
+               (let-realised [result (eval-buffer session)]
+                 (annotate session
+                           (when (and (:line @result) (:annotation @result))
+                             {:row (dec (:line @result))
+                              :column nil
+                              :text (:annotation @result)
+                              :type :error}))
+                 (if (:error @result)
+                   (repl-print-error @result)
+                   (repl-print :result (str (:ns @result) " compiled successfully.")))))))
+          (repl-print :error (str "Save error: " (:error @result))))))))

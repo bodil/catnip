@@ -129,6 +129,15 @@
 (defn repl-print-exception [error & [pos-in-file]]
   (print-node (exception-node error pos-in-file)))
 
+(defn repl-print-error [error]
+  (let [{:keys [error line annotation exception]} error]
+    (if (string? error)
+      (do
+        (repl-print :error (if line (str "Line " line ": " error)
+                               error))
+        (repl-print-exception exception))
+      (repl-print-exception error))))
+
 (defn- print-eval [ann msg & [skip-first]]
   ;; FIXME: implement (correct-lines msg)
   (let [results (:eval msg)
