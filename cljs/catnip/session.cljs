@@ -4,6 +4,7 @@
   (:require [redlobster.promise :as p]
             [catnip.socket :as socket]
             [catnip.editor :as editor]
+            [catnip.browser :as browser]
             [catnip.commands :refer [defcommand]]
             [catnip.fileselector :refer [file-selector]]
             [catnip.path :as path]
@@ -88,5 +89,6 @@
                               :type :error}))
                  (if (:error @result)
                    (repl-print-error @result)
-                   (repl-print :result (str (:ns @result) " compiled successfully.")))))))
+                   (repl-print :result (str (:ns @result) " compiled successfully.")))
+                 (browser/reload)))))
           (repl-print :error (str "Save error: " (:error @result))))))))

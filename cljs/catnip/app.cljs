@@ -6,6 +6,7 @@
             [catnip.commands :as cmd :refer [defcommand defkey]]
             [catnip.keymap :as keymap]
             [catnip.editor :refer [create-editor]]
+            [catnip.browser :refer [create-browser]]
             [catnip.session :refer [load-buffer]]
             [catnip.repl :as repl :refer [create-repl]]
             [redlobster.events :as e]))
@@ -13,12 +14,15 @@
 (defer
   (dom/add-class! (dom/q "body")
                   (str "theme-" (or window/CatnipProfile.theme "light")))
+  (dom/add-class! (dom/q "body") "hide-browser")
 
   (socket/connect)
   (create-repl (dom/id "repl-input")
                (dom/id "repl-display")
                (dom/id "repl-prompt"))
   (create-editor (dom/id "editor"))
+  (create-browser (dom/id "view") (dom/id "location-bar")
+                  (dom/id "location-refresh"))
   (load-buffer "project.clj")
 
   (e/on js/window :keydown (cmd/event-handler nil :global))

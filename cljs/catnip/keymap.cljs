@@ -3,6 +3,7 @@
 
 (defn setup []
   (defkey :global "C-r" "toggle-repl")
+  (defkey :global "C-1" "toggle-browser")
 
   (defkey :global "C-f" "open-file")
   (defkey :global "C-s" "save-buffer")

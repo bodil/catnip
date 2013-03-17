@@ -73,3 +73,7 @@
 (defn active-session
   ([] (active-session @editor))
   ([editor] (.getSession editor)))
+
+(defn resize
+  ([] (resize @editor))
+  ([editor] (.resize editor)))
