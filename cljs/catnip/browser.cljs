@@ -28,7 +28,6 @@
     (e/on frame :load #(sync-location-bar browser))
     (e/on (-> location-bar .-parentElement .-parentElement) :submit
           (fn [e]
-            (js/alert "OHNOES")
             (.preventDefault e)
             (load-url browser (dom/value location-bar))))
     (e/on refresh-button :click #(reload browser))
