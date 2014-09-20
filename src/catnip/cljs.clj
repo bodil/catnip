@@ -34,11 +34,21 @@
 
 (with-test
   (defn path-in-build? [path build]
-    (paths/inside? (io/file (:source-path build)) (io/file path)))
+    (if-let [source-path (:source-path build)]
+      (paths/inside? (io/file source-path) (io/file path))
+      (boolean (some #(paths/inside? (io/file %)
+                                     (io/file path))
+                     (:source-paths build)))))
   (is (true? (path-in-build? "src/foo.cljs"
                              {:source-path "src"})))
+  (is (true? (path-in-build? "src1/foo.cljs"
+                             {:source-paths ["src1" "src2"]})))
+  (is (true? (path-in-build? "src2/foo.cljs"
+                             {:source-paths ["src1" "src2"]})))
   (is (false? (path-in-build? "src/foo.cljs"
-                             {:source-path "test"}))))
+                             {:source-path "test"})))
+  (is (false? (path-in-build? "src/foo.cljs"
+                              {:source-paths ["src1" "src2"]}))))
 
 (with-test
  (defn builds-for [cljsbuild path]
@@ -51,7 +61,12 @@
                     "src/cljs/wibble.cljs"))))
 
 (defn compile-build [build]
-  (when-let [srcpath (:source-path build)]
+  (when-let [srcpath (or (:source-path build)
+                         (reify
+                           cljsc/Compilable
+                           (-compile [_ opts]
+                             (mapcat #(cljsc/-compile % opts)
+                                     (:source-paths build)))))]
     (when-let [options (:compiler build)]
       (try
         (cljsc/build srcpath options)
